@@ -104,12 +104,12 @@ public class Parser
         var body = ParseMethodBody();
         Eat(TokenType.Brace); // "}"
 
-        return new(name, type, body, []);
+        return new(name, type, body, parameters);
     }
 
-    private List<ParameterNode> ParseParameters()
+    private List<IParameterNode> ParseParameters()
     {
-        var parameters = new List<ParameterNode>();
+        var parameters = new List<IParameterNode>();
 
         while (_currentToken.Type == TokenType.Type)
         {
@@ -128,10 +128,10 @@ public class Parser
         return parameters;
     }
 
-    private List<StatementNode> ParseMethodBody()
+    private List<IExpressionNode> ParseMethodBody()
     {
         // Simplified parsing of method body, assuming it's a list of expressions
-        var body = new List<StatementNode>();
+        var body = new List<IExpressionNode>();
 
         while (_currentToken.Type != TokenType.Brace)
         {

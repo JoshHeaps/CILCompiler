@@ -4,6 +4,6 @@ public interface IMethodNode : IAstNode
 {
     public Type ReturnType { get; }
     public string Name { get; }
-    public string Body { get; }
+    public List<IExpressionNode> Body { get; }
     public List<IParameterNode> Parameters { get; }
 }

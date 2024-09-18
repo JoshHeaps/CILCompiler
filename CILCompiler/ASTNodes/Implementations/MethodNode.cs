@@ -3,7 +3,7 @@ using CILCompiler.ASTVisitors.Interfaces;
 
 namespace CILCompiler.ASTNodes.Implementations;
 
-public record MethodNode(string Name, Type ReturnType, string Body, List<IFieldNode> Parameters) : IMethodNode
+public record MethodNode(string Name, Type ReturnType, List<IExpressionNode> Body, List<IParameterNode> Parameters) : IMethodNode
 {
     public T Accept<T>(INodeVisitor<T> visitor) =>
         visitor.VisitMethodCall(this);
