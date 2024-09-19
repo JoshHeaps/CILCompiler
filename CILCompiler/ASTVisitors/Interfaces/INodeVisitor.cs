@@ -1,4 +1,4 @@
-﻿using CILCompiler.ASTNodes.Implementations;
+﻿using CILCompiler.ASTNodes.Implementations.Expressions;
 using CILCompiler.ASTNodes.Interfaces;
 
 namespace CILCompiler.ASTVisitors.Interfaces;

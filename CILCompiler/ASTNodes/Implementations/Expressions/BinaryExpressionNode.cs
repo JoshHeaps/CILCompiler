@@ -1,7 +1,7 @@
 ﻿using CILCompiler.ASTNodes.Interfaces;
 using CILCompiler.ASTVisitors.Interfaces;
 
-namespace CILCompiler.ASTNodes.Implementations;
+namespace CILCompiler.ASTNodes.Implementations.Expressions;
 
 public record BinaryExpressionNode(ExpressionNode Left, ExpressionNode Right, string Operator) : IExpressionNode
 {

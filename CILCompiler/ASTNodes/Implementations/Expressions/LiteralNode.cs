@@ -1,7 +1,7 @@
 ﻿using CILCompiler.ASTNodes.Interfaces;
 using CILCompiler.ASTVisitors.Interfaces;
 
-namespace CILCompiler.ASTNodes.Implementations;
+namespace CILCompiler.ASTNodes.Implementations.Expressions;
 
 public record LiteralNode(object Value) : IExpressionNode
 {
