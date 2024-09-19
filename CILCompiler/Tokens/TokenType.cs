@@ -14,5 +14,6 @@ public enum TokenType
     Brace,
     Parenthesis,
     EndOfFile,
-    Error
+    Error,
+    Any,
 }

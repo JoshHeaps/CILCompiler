@@ -18,14 +18,10 @@ public class Parser
 
     private void Eat(TokenType type)
     {
-        if (_currentToken.Type == type)
-        {
-            _currentToken = _lexer.Advance();
-        }
-        else
-        {
+        if (_currentToken.Type != type && type != TokenType.Any)
             throw new Exception($"Expected token {type} but got {_currentToken.Type}");
-        }
+
+        _currentToken = _lexer.Advance();
     }
 
     public ObjectNode Parse()
@@ -36,19 +32,22 @@ public class Parser
         List<IMethodNode> methods = [];
         Eat(TokenType.Brace); // "{"
 
-        while (_currentToken.Type == TokenType.Type)
+        while (_currentToken.Type != TokenType.EndOfFile)
         {
-            if (PeekNextToken().Type == TokenType.Parenthesis)
+            while (_currentToken.Type == TokenType.Type)
             {
-                methods.Add(ParseMethod());
+                if (PeekNextToken().Type == TokenType.Parenthesis)
+                {
+                    methods.Add(ParseMethod());
+                }
+                else
+                {
+                    fields.Add(ParseField());
+                }
             }
-            else
-            {
-                fields.Add(ParseField());
-            }
-        }
 
-        Eat(TokenType.Brace); // "}"
+            Eat(TokenType.Any); // "}", ";" both of those are options, as stray semicolons are allowed.
+        }
 
         return new(name, fields, methods);
     }
@@ -77,7 +76,7 @@ public class Parser
 
         var value = _converter[type](stringValue);
 
-        Eat(TokenType.QuotationMark); // ";"
+        Eat(TokenType.Semicolon); // ";"
         return new(name, value);
     }
 
@@ -181,6 +180,10 @@ public class Parser
     {
         var savedPosition = _lexer.Position;  // save the current position
         var nextToken = _lexer.Advance();
+
+        if (nextToken.Type == TokenType.Identifier)
+            nextToken = _lexer.Advance();
+
         _lexer.Position = savedPosition;  // restore the position
 
         return nextToken;

@@ -31,6 +31,11 @@ public class ILCreationVisitor : INodeVisitor
         throw new NotImplementedException();
     }
 
+    public void VisitParameter(IParameterNode node)
+    {
+        throw new NotImplementedException();
+    }
+
     public void VisitPrintStatement(PrintStatementNode node)
     {
         throw new NotImplementedException();

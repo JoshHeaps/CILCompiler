@@ -42,7 +42,14 @@ public class PrintVisitor : INodeVisitor
 
         Console.WriteLine(")");
         Console.WriteLine("{");
-        Console.WriteLine(node.Body.ToString());
+
+        foreach (var line in node.Body)
+        {
+            Console.Write("    ");
+            line.Accept(this);
+            Console.WriteLine(";");
+        }
+
         Console.WriteLine("}");
     }
 
@@ -69,6 +76,11 @@ public class PrintVisitor : INodeVisitor
 
     public void VisitStatement(StatementNode node)
     {
-        Console.WriteLine(node.Expression);
+        Console.Write(node.Expression);
+    }
+
+    public void VisitParameter(IParameterNode node)
+    {
+        Console.Write($"{node.Type.Name} {node.Name}");
     }
 }

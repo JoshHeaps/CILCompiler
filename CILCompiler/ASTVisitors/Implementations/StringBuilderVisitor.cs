@@ -44,4 +44,9 @@ public class StringBuilderVisitor : INodeVisitor<string>
     {
         throw new NotImplementedException();
     }
+
+    public string VisitParameter(IParameterNode node)
+    {
+        throw new NotImplementedException();
+    }
 }
