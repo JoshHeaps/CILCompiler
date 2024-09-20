@@ -3,7 +3,7 @@ using CILCompiler.ASTVisitors.Interfaces;
 
 namespace CILCompiler.ASTNodes.Implementations.Expressions;
 
-public record BinaryExpressionNode(ExpressionNode Left, ExpressionNode Right, string Operator) : IExpressionNode
+public record BinaryExpressionNode(IExpressionNode Left, IExpressionNode Right, string Operator) : IExpressionNode
 {
     public string Expression => $"{Left.Expression} {Operator} {Right.Expression}";
 

@@ -1,7 +1,4 @@
-﻿using System.Text.RegularExpressions;
-using static CILCompiler.Utilities.Functional;
-
-namespace CILCompiler.Tokens;
+﻿namespace CILCompiler.Tokens;
 
 public class Lexer
 {
@@ -11,6 +8,8 @@ public class Lexer
     private static readonly Dictionary<string, TokenType> KeywordTypes = new()
     {
         { "class", TokenType.Keyword },
+        { "if", TokenType.FlowControl },
+        { "while", TokenType.FlowControl },
         { "object", TokenType.Type },
         { "int", TokenType.Type },
         { "long", TokenType.Type },

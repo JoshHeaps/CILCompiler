@@ -1,5 +1,6 @@
 ﻿using CILCompiler.ASTNodes;
 using CILCompiler.ASTNodes.Implementations;
+using CILCompiler.ASTNodes.Implementations.Expressions;
 using CILCompiler.ASTNodes.Interfaces;
 using CILCompiler.Utilities;
 
@@ -9,11 +10,15 @@ public class Parser
 {
     private readonly Lexer _lexer;
     private Token _currentToken;
+    private List<IFieldNode> _fields;
+    private List<IMethodNode> _methods;
 
     public Parser(Lexer lexer)
     {
         _lexer = lexer;
         _currentToken = _lexer.Advance();
+        _fields = [];
+        _methods = [];
     }
 
     private void Eat(TokenType type)
@@ -28,28 +33,40 @@ public class Parser
     {
         Eat(TokenType.Keyword); // class
         var name = ParseIdentifier(); // class name
-        List<IFieldNode> fields = [];
-        List<IMethodNode> methods = [];
         Eat(TokenType.Brace); // "{"
+
+        // Parse fields first, so method bodies can access them.
+
+        while (_currentToken.Type != TokenType.EndOfFile)
+        {
+            while (_currentToken.Type == TokenType.Type)
+            {
+                if (PeekNextToken().Type != TokenType.Parenthesis)
+                    _fields.Add(ParseField());
+                else
+                    _ = ParseMethod();
+            }
+
+            Eat(TokenType.Any); // "}", ";" both of those are options, as stray semicolons are allowed.
+        }
+
+        _lexer.Position = 0;
+        _currentToken = _lexer.Advance();
 
         while (_currentToken.Type != TokenType.EndOfFile)
         {
             while (_currentToken.Type == TokenType.Type)
             {
                 if (PeekNextToken().Type == TokenType.Parenthesis)
-                {
-                    methods.Add(ParseMethod());
-                }
+                    _methods.Add(ParseMethod());
                 else
-                {
-                    fields.Add(ParseField());
-                }
+                    _ = ParseField();
             }
 
             Eat(TokenType.Any); // "}", ";" both of those are options, as stray semicolons are allowed.
         }
 
-        return new(name, fields, methods);
+        return new(name, _fields, _methods);
     }
 
     private readonly Dictionary<Type, Func<string, object>> _converter = new()
@@ -100,7 +117,7 @@ public class Parser
         var parameters = ParseParameters();
         Eat(TokenType.Parenthesis); // ")"
         Eat(TokenType.Brace); // "{"
-        var body = ParseMethodBody();
+        var body = ParseMethodBody(parameters);
         Eat(TokenType.Brace); // "}"
 
         return new(name, type, body, parameters);
@@ -127,29 +144,129 @@ public class Parser
         return parameters;
     }
 
-    private List<IExpressionNode> ParseMethodBody()
+    private List<IExpressionNode> ParseMethodBody(List<IParameterNode> parameters)
     {
         // Simplified parsing of method body, assuming it's a list of expressions
         var body = new List<IExpressionNode>();
+        List<ILocalVariableNode> locals = [];
 
         while (_currentToken.Type != TokenType.Brace)
         {
-            body.Add(ParseStatement());
+            if (_currentToken.Type == TokenType.Type && PeekNextToken().Type == TokenType.Equals)
+                body.Add(ParseLocalDeclaration());
+
+            else if (_currentToken.Type == TokenType.Identifier && PeekNextToken().Type == TokenType.Equals)
+                body.Add(ParseValueAssignment(locals, parameters));
+
+            if (body.Count > 0 && body[^1] is ILocalVariableNode local)
+                locals.Add(local);
         }
 
         return body;
     }
 
-    private IExpressionNode ParseStatement()
+    private AssignmentNode ParseValueAssignment(List<ILocalVariableNode> locals, List<IParameterNode> parameters)
     {
+        string name = ParseIdentifier();
+        var type = locals.FirstOrDefault(x => x.Name == name)?.Type
+            ?? parameters.FirstOrDefault(x => x.Name == name)?.Type
+            ?? throw new InvalidProgramException("Identifier doesn't exist in this context.");
+
+        Eat(TokenType.Equals);
+        var tokens = PeekUntil(TokenType.Semicolon);
+        IExpressionNode? expression = null;
+
+        if (tokens.Any(x => x.Type == TokenType.Operator))
+            expression = ParseBinaryOperation(type);
+        else
+            expression = ParseLiteralValue(type);
+
+        expression ??= ParseBinaryOperation(type);
+
+        return new(name, new ValueAccessorNode(expression));
+    }
+
+    private LiteralNode ParseLiteralValue(Type type)
+    {
+        if (type == typeof(string)) // "
+            Eat(TokenType.QuotationMark);
+
+        var stringValue = string.Empty;
+
+        while (_currentToken.Type == TokenType.Identifier)
+            stringValue += ParseIdentifier(); // 12, apple
+
+        if (type == typeof(string))
+            Eat(TokenType.QuotationMark); // "
+
+        var value = _converter[type](stringValue);
+
+        Eat(TokenType.Semicolon); // ";"
+
+        return new LiteralNode(value);
+    }
+
+    private ILocalVariableNode ParseLocalDeclaration()
+    {
+        int declaredPosition = _lexer.Position;
+        var type = ParseType();
+        var name = ParseIdentifier();
+        Eat(TokenType.Equals);
+        var tokens = PeekUntil(TokenType.Semicolon);
+        IExpressionNode? expression = null;
+
+        if (tokens.Any(x => x.Type == TokenType.Operator))
+            expression = ParseBinaryOperation(type);
+        else
+            expression = ParseLiteralValue(type);
+
+        expression ??= ParseBinaryOperation(type);
+
+        return new LocalVariableNode(name, new ValueAccessorNode(expression), declaredPosition);
+    }
+
+    Dictionary<Type, Func<string, object>> typeConversions = new()
+    {
+        { typeof(int), value => int.TryParse(value, out int i) ? i : throw new InvalidCastException() },
+        { typeof(string), value => value },
+        { typeof(bool), value => bool.TryParse(value, out bool b) ? b : throw new InvalidCastException() },
+        { typeof(float), value => float.TryParse(value, out float f) ? f : throw new InvalidCastException() },
+        { typeof(double), value => double.TryParse(value, out double d) ? d : throw new InvalidCastException() },
+        { typeof(long), value => long.TryParse(value, out long l) ? l : throw new InvalidCastException() },
+        { typeof(short), value => short.TryParse(value, out short s) ? s : throw new InvalidCastException() },
+        { typeof(byte), value => byte.TryParse(value, out byte b) ? b : throw new InvalidCastException() },
+        { typeof(char), value => char.TryParse(value, out char c) ? c : throw new InvalidCastException() },
+        { typeof(object), value => value },
+    };
+
+    private BinaryExpressionNode ParseBinaryOperation(Type? type = null)
+    {
+        type ??= typeof(object);
         // For now, we'll handle only basic expressions as method statements
         if (_currentToken.Type != TokenType.Identifier)
             throw new Exception("Unexpected statement");
 
-        var expression = ParseIdentifier() + ParseOperator() + ParseIdentifier();
+        if (type == typeof(string))
+            Eat(TokenType.QuotationMark);
+
+        LiteralNode left = new(typeConversions[type](ParseIdentifier()));
+
+        if (type == typeof(string))
+            Eat(TokenType.QuotationMark);
+
+        string Operator = ParseOperator();
+
+        if (type == typeof(string))
+            Eat(TokenType.QuotationMark);
+
+        LiteralNode right = new(typeConversions[type](ParseIdentifier()));
+
+        if (type == typeof(string))
+            Eat(TokenType.QuotationMark);
+
         Eat(TokenType.Semicolon); // ";"
 
-        return new StatementNode(expression);
+        return new BinaryExpressionNode(left, right, Operator);
     }
 
     private string ParseOperator()
@@ -187,5 +304,18 @@ public class Parser
         _lexer.Position = savedPosition;  // restore the position
 
         return nextToken;
+    }
+
+    private List<Token> PeekUntil(TokenType untilType)
+    {
+        var savedPosition = _lexer.Position;  // save the current position
+        List<Token> tokens = [_currentToken,_lexer.Advance()];
+
+        while (tokens[^1].Type != untilType)
+            tokens.Add(_lexer.Advance());
+
+        _lexer.Position = savedPosition;  // restore the position
+
+        return tokens;
     }
 }

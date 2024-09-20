@@ -1,4 +1,5 @@
-﻿using CILCompiler.ASTNodes.Implementations.Expressions;
+﻿using CILCompiler.ASTNodes.Implementations;
+using CILCompiler.ASTNodes.Implementations.Expressions;
 using CILCompiler.ASTNodes.Interfaces;
 using CILCompiler.ASTVisitors.Interfaces;
 
@@ -15,9 +16,16 @@ public class PrintVisitor : INodeVisitor
         Console.Write(")");
     }
 
-    public void VisitLiteral(LiteralNode node)
+    public void VisitExpression(IExpressionNode node)
     {
-        Console.Write(node?.Value?.ToString() ?? "");
+        if (node is LiteralNode literal)
+            Console.Write(literal?.Value?.ToString() ?? "");
+
+        if (node is BinaryExpressionNode binary)
+            binary.Accept(this);
+
+        if (node is AssignmentNode assignment)
+            assignment.Accept(this);
     }
 
     public void VisitPrintStatement(PrintStatementNode node)
@@ -83,4 +91,17 @@ public class PrintVisitor : INodeVisitor
     {
         Console.Write($"{node.Type.Name} {node.Name}");
     }
+
+    public void VisitLocalVariable(ILocalVariableNode node)
+    {
+        LocalVariableNode variable = (node as LocalVariableNode)!;
+        Console.Write($"{node.Type.Name} {node.Name} = ");
+        variable.ValueAccessor.Accept(this);
+    }
+
+    public void VisitValueAccessor(IValueAccessorNode node) =>
+        node.ValueHolder.Accept(this);
+
+    public void VisitAssignment(AssignmentNode node) =>
+        Console.Write(node.Expression);
 }

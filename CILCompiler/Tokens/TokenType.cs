@@ -13,6 +13,7 @@ public enum TokenType
     Comma,
     Brace,
     Parenthesis,
+    FlowControl,
     EndOfFile,
     Error,
     Any,

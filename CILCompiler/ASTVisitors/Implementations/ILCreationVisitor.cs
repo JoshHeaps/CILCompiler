@@ -16,7 +16,12 @@ public class ILCreationVisitor : INodeVisitor
         throw new NotImplementedException();
     }
 
-    public void VisitLiteral(LiteralNode node)
+    public void VisitExpression(IExpressionNode node)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void VisitLocalVariable(ILocalVariableNode node)
     {
         throw new NotImplementedException();
     }
@@ -42,6 +47,16 @@ public class ILCreationVisitor : INodeVisitor
     }
 
     public void VisitStatement(StatementNode node)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void VisitValueAccessor(IValueAccessorNode node)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void VisitAssignment(AssignmentNode node)
     {
         throw new NotImplementedException();
     }

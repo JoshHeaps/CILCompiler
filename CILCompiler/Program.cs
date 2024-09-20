@@ -1,17 +1,18 @@
 ﻿using CILCompiler;
 using CILCompiler.ASTNodes.Implementations;
+using CILCompiler.ASTNodes.Implementations.Expressions;
 using CILCompiler.ASTVisitors.Implementations;
 using CILCompiler.Tokens;
 
-//var printStatement = new PrintStatementNode
-//(
-//    new BinaryExpressionNode
-//    (
-//        new LiteralNode(5),  // Left operand
-//        new LiteralNode(3),  // Right operand
-//        "+"                  // Operator
-//    )
-//);
+var printStatement = new PrintStatementNode
+(
+    new BinaryExpressionNode
+    (
+        new LiteralNode(5),  // Left operand
+        new LiteralNode(3),  // Right operand
+        "+"                  // Operator
+    )
+);
 
 //var stringBuilder = new StringBuilderVisitor();
 //var printer = new PrintVisitor();

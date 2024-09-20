@@ -9,8 +9,8 @@ public class StringBuilderVisitor : INodeVisitor<string>
     public string VisitBinaryExpression(BinaryExpressionNode node) =>
         $"({node.Left.Accept(this)} {node.Operator} {node.Right.Accept(this)})";
 
-    public string VisitLiteral(LiteralNode node) =>
-        node?.Value?.ToString() ?? "";
+    public string VisitExpression(IExpressionNode node) =>
+        (node as LiteralNode)?.Value?.ToString() ?? "";
 
     public string VisitPrintStatement(PrintStatementNode node) =>
         $"print {node.Expression.Accept(this)};";
@@ -46,6 +46,21 @@ public class StringBuilderVisitor : INodeVisitor<string>
     }
 
     public string VisitParameter(IParameterNode node)
+    {
+        throw new NotImplementedException();
+    }
+
+    public string VisitLocalVariable(ILocalVariableNode node)
+    {
+        throw new NotImplementedException();
+    }
+
+    public string VisitValueAccessor(IValueAccessorNode node)
+    {
+        throw new NotImplementedException();
+    }
+
+    public string VisitAssignment(AssignmentNode node)
     {
         throw new NotImplementedException();
     }
