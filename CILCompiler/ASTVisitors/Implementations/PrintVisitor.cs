@@ -19,7 +19,7 @@ public class PrintVisitor : INodeVisitor
     public void VisitExpression(IExpressionNode node)
     {
         if (node is LiteralNode literal)
-            Console.Write(literal?.Value?.ToString() ?? "");
+            Console.Write((literal?.Value?.GetType().Name ?? "") + " " + literal?.Value?.ToString() ?? "");
 
         if (node is BinaryExpressionNode binary)
             binary.Accept(this);
@@ -103,5 +103,5 @@ public class PrintVisitor : INodeVisitor
         node.ValueHolder.Accept(this);
 
     public void VisitAssignment(AssignmentNode node) =>
-        Console.Write(node.Expression);
+        Console.Write(node.VariableName + " = " + node.ValueAccessor.GetValue().GetType().Name + " " + node.ValueAccessor.GetValue());
 }
