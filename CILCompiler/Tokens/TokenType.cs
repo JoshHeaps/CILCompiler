@@ -16,5 +16,6 @@ public enum TokenType
     FlowControl,
     EndOfFile,
     Error,
+    Return,
     Any,
 }

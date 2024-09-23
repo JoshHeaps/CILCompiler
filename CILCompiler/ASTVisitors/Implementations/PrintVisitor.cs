@@ -26,11 +26,19 @@ public class PrintVisitor : INodeVisitor
 
         if (node is AssignmentNode assignment)
             assignment.Accept(this);
+
+        if (node is ReturnStatementNode returnStatement)
+            VisitReturnStatement(returnStatement);
+    }
+
+    private void VisitReturnStatement(ReturnStatementNode returnStatement)
+    {
+        Console.Write("return ");
+        returnStatement.ValueAccessor.Accept(this);
     }
 
     public void VisitPrintStatement(PrintStatementNode node)
     {
-
         Console.Write("print ");
         node.Expression.Accept(this);
         Console.WriteLine(";");
@@ -38,7 +46,7 @@ public class PrintVisitor : INodeVisitor
 
     public void VisitMethodCall(IMethodNode node)
     {
-        Console.Write($"{node.Name}(");
+        Console.Write($"{node.ReturnType.Name} {node.Name}(");
 
         for (int i = 0; i < node.Parameters.Count; i++)
         {
@@ -67,7 +75,10 @@ public class PrintVisitor : INodeVisitor
         Console.WriteLine("{");
 
         foreach (var field in node.Fields)
+        {
             field.Accept(this);
+            Console.Write($" = {field.Value};");
+        }
 
         Console.WriteLine();
 
@@ -79,7 +90,7 @@ public class PrintVisitor : INodeVisitor
 
     public void VisitField(IFieldNode node)
     {
-        Console.WriteLine($"{node.Type.Name} {node.Name} = {node.Value};");
+        Console.Write($"{node.Type.Name} {node.Name}");
     }
 
     public void VisitStatement(StatementNode node)
@@ -102,6 +113,9 @@ public class PrintVisitor : INodeVisitor
     public void VisitValueAccessor(IValueAccessorNode node) =>
         node.ValueHolder.Accept(this);
 
-    public void VisitAssignment(AssignmentNode node) =>
-        Console.Write(node.VariableName + " = " + node.ValueAccessor.GetValue().GetType().Name + " " + node.ValueAccessor.GetValue());
+    public void VisitAssignment(AssignmentNode node)
+    {
+        Console.Write(node.VariableName + " = ");
+        node.ValueAccessor.Accept(this);
+    }
 }

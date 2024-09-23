@@ -1,9 +1,10 @@
 ﻿namespace CILCompiler.ASTNodes.Interfaces;
 
-public interface IFieldNode : IAstNode
+public interface IFieldNode : IExpressionNode
 {
     public Type Type { get; }
     public string Name { get; }
+    public IExpressionNode ValueContainer { get; }
     public object Value { get; }
 
 }

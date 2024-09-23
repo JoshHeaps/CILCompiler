@@ -1,12 +1,12 @@
-﻿using CILCompiler.ASTNodes.Implementations.Expressions;
-using CILCompiler.ASTNodes.Interfaces;
+﻿using CILCompiler.ASTNodes.Interfaces;
 using CILCompiler.ASTVisitors.Interfaces;
 
-namespace CILCompiler.ASTNodes.Implementations;
+namespace CILCompiler.ASTNodes.Implementations.Expressions;
 
 public record ParameterNode(Type Type, string Name) : IParameterNode
 {
-    public IValueAccessorNode ValueAccessor { get => new ValueAccessorNode(new StatementNode("")); }
+    public IValueAccessorNode ValueAccessor { get => new ValueAccessorNode(new LiteralNode(Activator.CreateInstance(Type)!)); }
+    public string Expression { get => $"{Type.Name} {Name}"; }
 
     public T Accept<T>(INodeVisitor<T> visitor) =>
         visitor.VisitParameter(this);

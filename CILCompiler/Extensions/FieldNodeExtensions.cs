@@ -1,4 +1,4 @@
-﻿using CILCompiler.ASTNodes.Implementations;
+﻿using CILCompiler.ASTNodes.Implementations.Expressions;
 using CILCompiler.ASTNodes.Interfaces;
 
 namespace CILCompiler.Extensions;
@@ -10,9 +10,9 @@ public static class FieldNodeExtensions
         if (field.Value is not T)
             throw new InvalidOperationException();
 
-        return new FieldNode<T>(field.Name, (field.Value as T)!);
+        return new FieldNode<T>(field.Name, field.ValueContainer);
     }
 
     public static IFieldNode GetGenericField<T>(this ITypedFieldNode<T> field) where T : class =>
-        new FieldNode(field.Name, field.Value!);
+        new FieldNode(field.Name, field.ValueContainer);
 }

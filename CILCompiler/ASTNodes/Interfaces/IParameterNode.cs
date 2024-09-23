@@ -1,6 +1,6 @@
 ﻿namespace CILCompiler.ASTNodes.Interfaces;
 
-public interface IParameterNode : IAstNode
+public interface IParameterNode : IExpressionNode
 {
     public IValueAccessorNode ValueAccessor { get; }
     public Type Type { get; }

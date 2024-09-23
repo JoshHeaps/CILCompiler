@@ -94,7 +94,7 @@ public class Parser
         var value = _converter[type](stringValue);
 
         Eat(TokenType.Semicolon); // ";"
-        return new(name, value);
+        return new(name, new LiteralNode(value));
     }
 
     private Type ParseType()
@@ -117,7 +117,7 @@ public class Parser
         var parameters = ParseParameters();
         Eat(TokenType.Parenthesis); // ")"
         Eat(TokenType.Brace); // "{"
-        var body = ParseMethodBody(parameters);
+        var body = ParseMethodBody(type, parameters);
         Eat(TokenType.Brace); // "}"
 
         return new(name, type, body, parameters);
@@ -144,7 +144,7 @@ public class Parser
         return parameters;
     }
 
-    private List<IExpressionNode> ParseMethodBody(List<IParameterNode> parameters)
+    private List<IExpressionNode> ParseMethodBody(Type type, List<IParameterNode> parameters)
     {
         // Simplified parsing of method body, assuming it's a list of expressions
         var body = new List<IExpressionNode>();
@@ -153,16 +153,35 @@ public class Parser
         while (_currentToken.Type != TokenType.Brace)
         {
             if (_currentToken.Type == TokenType.Type && PeekNextToken().Type == TokenType.Equals)
-                body.Add(ParseLocalDeclaration());
+                body.Add(ParseLocalDeclaration(locals, parameters));
 
             else if (_currentToken.Type == TokenType.Identifier && PeekNextToken().Type == TokenType.Equals)
                 body.Add(ParseValueAssignment(locals, parameters));
+
+            else if (_currentToken.Type == TokenType.Return)
+                body.Add(ParseReturnStatement(type, locals, parameters));
 
             if (body.Count > 0 && body[^1] is ILocalVariableNode local)
                 locals.Add(local);
         }
 
         return body;
+    }
+
+    private ReturnStatementNode ParseReturnStatement(Type type, List<ILocalVariableNode> locals, List<IParameterNode> parameters)
+    {
+        Eat(TokenType.Return);
+
+        return new(new ValueAccessorNode(ParseExpression(type, parameters, locals)));
+    }
+
+    private IExpressionNode ParseExpression(Type? type = null, List<IParameterNode>? parameters = null, List<ILocalVariableNode>? locals = null)
+    {
+        IExpressionNode? expression = null;
+
+        expression ??= ParseBinaryOperation(type, parameters, locals);
+
+        return expression;
     }
 
     private AssignmentNode ParseValueAssignment(List<ILocalVariableNode> locals, List<IParameterNode> parameters)
@@ -177,11 +196,11 @@ public class Parser
         IExpressionNode? expression = null;
 
         if (tokens.Any(x => x.Type == TokenType.Operator))
-            expression = ParseBinaryOperation(type);
+            expression = ParseBinaryOperation(type, parameters, locals);
         else
             expression = ParseLiteralValue(type);
 
-        expression ??= ParseBinaryOperation(type);
+        expression ??= ParseBinaryOperation(type, parameters, locals);
 
         return new(name, new ValueAccessorNode(expression));
     }
@@ -206,7 +225,7 @@ public class Parser
         return new LiteralNode(value);
     }
 
-    private ILocalVariableNode ParseLocalDeclaration()
+    private ILocalVariableNode ParseLocalDeclaration(List<ILocalVariableNode> locals, List<IParameterNode> parameters)
     {
         int declaredPosition = _lexer.Position;
         var type = ParseType();
@@ -216,11 +235,11 @@ public class Parser
         IExpressionNode? expression = null;
 
         if (tokens.Any(x => x.Type == TokenType.Operator))
-            expression = ParseBinaryOperation(type);
+            expression = ParseBinaryOperation(type, parameters, locals);
         else
             expression = ParseLiteralValue(type);
 
-        expression ??= ParseBinaryOperation(type);
+        expression ??= ParseBinaryOperation(type, parameters, locals);
 
         return new LocalVariableNode(name, new ValueAccessorNode(expression), declaredPosition);
     }
@@ -239,7 +258,7 @@ public class Parser
         { typeof(object), value => value },
     };
 
-    private BinaryExpressionNode ParseBinaryOperation(Type? type = null)
+    private BinaryExpressionNode ParseBinaryOperation(Type? type = null, List<IParameterNode>? parameters = null, List<ILocalVariableNode>? locals = null)
     {
         type ??= typeof(object);
         // For now, we'll handle only basic expressions as method statements
@@ -249,7 +268,17 @@ public class Parser
         if (type == typeof(string))
             Eat(TokenType.QuotationMark);
 
-        LiteralNode left = new(typeConversions[type](ParseIdentifier()));
+        IExpressionNode left;
+        var identifier = ParseIdentifier();
+
+        if (parameters is not null && parameters.Any(x => x.Name == identifier))
+            left = parameters.First(x => x.Name == identifier);
+        else if (locals is not null && locals.Any(x => x.Name == identifier))
+            left = locals.First(x => x.Name == identifier);
+        else if (_fields is not null && _fields.Any(x => x.Name == identifier))
+            left = _fields.First(x => x.Name == identifier);
+        else
+            left = new LiteralNode(typeConversions[type](identifier));
 
         if (type == typeof(string))
             Eat(TokenType.QuotationMark);
@@ -259,7 +288,17 @@ public class Parser
         if (type == typeof(string))
             Eat(TokenType.QuotationMark);
 
-        LiteralNode right = new(typeConversions[type](ParseIdentifier()));
+        IExpressionNode right;
+        identifier = ParseIdentifier();
+
+        if (parameters is not null && parameters.Any(x => x.Name == identifier))
+            right = parameters.First(x => x.Name == identifier);
+        else if (locals is not null && locals.Any(x => x.Name == identifier))
+            right = locals.First(x => x.Name == identifier);
+        else if (_fields is not null && _fields.Any(x => x.Name == identifier))
+            right = _fields.First(x => x.Name == identifier);
+        else
+            right = new LiteralNode(typeConversions[type](identifier));
 
         if (type == typeof(string))
             Eat(TokenType.QuotationMark);

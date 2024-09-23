@@ -18,6 +18,7 @@ public class Lexer
         { "bool", TokenType.Type },
         { "string", TokenType.Type },
         { "void", TokenType.Type },
+        { "return", TokenType.Return },
     };
 
     private static readonly Dictionary<char, Token> SymbolTokens = new()
