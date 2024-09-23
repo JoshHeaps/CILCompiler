@@ -3,6 +3,7 @@ using CILCompiler.ASTNodes.Implementations;
 using CILCompiler.ASTNodes.Implementations.Expressions;
 using CILCompiler.ASTNodes.Interfaces;
 using CILCompiler.Utilities;
+using System.Linq.Expressions;
 
 namespace CILCompiler.Tokens;
 
@@ -83,18 +84,10 @@ public class Parser
         var name = ParseIdentifier(); // foo
         Eat(TokenType.Equals); // =
 
-        if (type == typeof(string)) // "
-            Eat(TokenType.QuotationMark);
-
-        var stringValue = ParseIdentifier(); // 12, apple
-
-        if (type == typeof(string))
-            Eat(TokenType.QuotationMark); // "
-
-        var value = _converter[type](stringValue);
+        var expression = ParseExpression(type);
 
         Eat(TokenType.Semicolon); // ";"
-        return new(name, new LiteralNode(value));
+        return new(name, expression);
     }
 
     private Type ParseType()
@@ -163,6 +156,8 @@ public class Parser
 
             if (body.Count > 0 && body[^1] is ILocalVariableNode local)
                 locals.Add(local);
+
+            Eat(TokenType.Semicolon);
         }
 
         return body;
@@ -177,9 +172,25 @@ public class Parser
 
     private IExpressionNode ParseExpression(Type? type = null, List<IParameterNode>? parameters = null, List<ILocalVariableNode>? locals = null)
     {
-        IExpressionNode? expression = null;
+        if (PeekNextToken().Type == TokenType.Operator)
+            return ParseBinaryOperation(type, parameters, locals);
 
-        expression ??= ParseBinaryOperation(type, parameters, locals);
+        if (_currentToken.Type == TokenType.QuotationMark && type == typeof(string))
+            return ParseValue(type, parameters, locals);
+
+        IExpressionNode? expression = null;
+        type ??= typeof(object);
+
+        var identifier = ParseIdentifier();
+
+        if (parameters is not null && parameters.Any(x => x.Name == identifier))
+            expression = parameters.First(x => x.Name == identifier);
+        else if (locals is not null && locals.Any(x => x.Name == identifier))
+            expression = locals.First(x => x.Name == identifier);
+        else if (_fields is not null && _fields.Any(x => x.Name == identifier))
+            expression = _fields.First(x => x.Name == identifier);
+        else
+            expression = new LiteralNode(typeConversions[type](identifier));
 
         return expression;
     }
@@ -193,36 +204,38 @@ public class Parser
 
         Eat(TokenType.Equals);
         var tokens = PeekUntil(TokenType.Semicolon);
-        IExpressionNode? expression = null;
+        IExpressionNode? expression = ParseExpression(type, parameters, locals);
 
-        if (tokens.Any(x => x.Type == TokenType.Operator))
-            expression = ParseBinaryOperation(type, parameters, locals);
-        else
-            expression = ParseLiteralValue(type);
-
-        expression ??= ParseBinaryOperation(type, parameters, locals);
-
-        return new(name, new ValueAccessorNode(expression));
+        return new(type, name, new ValueAccessorNode(expression));
     }
 
-    private LiteralNode ParseLiteralValue(Type type)
+    private IExpressionNode ParseValue(Type? type = null, List<IParameterNode>? parameters = null, List<ILocalVariableNode>? locals = null)
     {
+        type ??= typeof(object);
+
+        IExpressionNode? expression = null;
+
         if (type == typeof(string)) // "
             Eat(TokenType.QuotationMark);
 
-        var stringValue = string.Empty;
+        var identifier = string.Empty;
 
         while (_currentToken.Type == TokenType.Identifier)
-            stringValue += ParseIdentifier(); // 12, apple
+            identifier += ParseIdentifier(); // 12, apple
 
         if (type == typeof(string))
             Eat(TokenType.QuotationMark); // "
 
-        var value = _converter[type](stringValue);
+        if (parameters is not null && parameters.Any(x => x.Name == identifier))
+            expression = parameters.First(x => x.Name == identifier);
+        else if (locals is not null && locals.Any(x => x.Name == identifier))
+            expression = locals.First(x => x.Name == identifier);
+        else if (_fields is not null && _fields.Any(x => x.Name == identifier))
+            expression = _fields.First(x => x.Name == identifier);
+        else
+            expression = new LiteralNode(typeConversions[type](identifier));
 
-        Eat(TokenType.Semicolon); // ";"
-
-        return new LiteralNode(value);
+        return expression;
     }
 
     private ILocalVariableNode ParseLocalDeclaration(List<ILocalVariableNode> locals, List<IParameterNode> parameters)
@@ -231,15 +244,8 @@ public class Parser
         var type = ParseType();
         var name = ParseIdentifier();
         Eat(TokenType.Equals);
-        var tokens = PeekUntil(TokenType.Semicolon);
-        IExpressionNode? expression = null;
 
-        if (tokens.Any(x => x.Type == TokenType.Operator))
-            expression = ParseBinaryOperation(type, parameters, locals);
-        else
-            expression = ParseLiteralValue(type);
-
-        expression ??= ParseBinaryOperation(type, parameters, locals);
+        IExpressionNode? expression = ParseExpression(type, parameters, locals);
 
         return new LocalVariableNode(name, new ValueAccessorNode(expression), declaredPosition);
     }
@@ -265,45 +271,9 @@ public class Parser
         if (_currentToken.Type != TokenType.Identifier)
             throw new Exception("Unexpected statement");
 
-        if (type == typeof(string))
-            Eat(TokenType.QuotationMark);
-
-        IExpressionNode left;
-        var identifier = ParseIdentifier();
-
-        if (parameters is not null && parameters.Any(x => x.Name == identifier))
-            left = parameters.First(x => x.Name == identifier);
-        else if (locals is not null && locals.Any(x => x.Name == identifier))
-            left = locals.First(x => x.Name == identifier);
-        else if (_fields is not null && _fields.Any(x => x.Name == identifier))
-            left = _fields.First(x => x.Name == identifier);
-        else
-            left = new LiteralNode(typeConversions[type](identifier));
-
-        if (type == typeof(string))
-            Eat(TokenType.QuotationMark);
-
+        IExpressionNode left = ParseValue(type, parameters, locals);
         string Operator = ParseOperator();
-
-        if (type == typeof(string))
-            Eat(TokenType.QuotationMark);
-
-        IExpressionNode right;
-        identifier = ParseIdentifier();
-
-        if (parameters is not null && parameters.Any(x => x.Name == identifier))
-            right = parameters.First(x => x.Name == identifier);
-        else if (locals is not null && locals.Any(x => x.Name == identifier))
-            right = locals.First(x => x.Name == identifier);
-        else if (_fields is not null && _fields.Any(x => x.Name == identifier))
-            right = _fields.First(x => x.Name == identifier);
-        else
-            right = new LiteralNode(typeConversions[type](identifier));
-
-        if (type == typeof(string))
-            Eat(TokenType.QuotationMark);
-
-        Eat(TokenType.Semicolon); // ";"
+        IExpressionNode right = ParseValue(type, parameters, locals);
 
         return new BinaryExpressionNode(left, right, Operator);
     }

@@ -115,7 +115,7 @@ public class PrintVisitor : INodeVisitor
 
     public void VisitAssignment(AssignmentNode node)
     {
-        Console.Write(node.VariableName + " = ");
+        Console.Write($"{node.Type.Name} {node.VariableName} = ");
         node.ValueAccessor.Accept(this);
     }
 }

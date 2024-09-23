@@ -3,7 +3,7 @@ using CILCompiler.ASTVisitors.Interfaces;
 
 namespace CILCompiler.ASTNodes.Implementations.Expressions;
 
-public record AssignmentNode(string VariableName, IValueAccessorNode ValueAccessor) : IExpressionNode
+public record AssignmentNode(Type Type, string VariableName, IValueAccessorNode ValueAccessor) : IExpressionNode
 {
     public string Expression => $"{VariableName} = {ValueAccessor.GetValue()}";
 
