@@ -10,6 +10,6 @@ public record ReturnStatementNode(IValueAccessorNode ValueAccessor) : IExpressio
     public T Accept<T>(INodeVisitor<T> visitor) =>
         visitor.VisitExpression(this);
 
-    public void Accept(INodeVisitor visitor) =>
-        visitor.VisitExpression(this);
+    public void Accept(INodeVisitor visitor, NodeVisitOptions? options = null) =>
+        visitor.VisitExpression(this, options);
 }

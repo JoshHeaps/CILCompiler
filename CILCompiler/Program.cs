@@ -3,6 +3,9 @@ using CILCompiler.ASTNodes.Implementations;
 using CILCompiler.ASTNodes.Implementations.Expressions;
 using CILCompiler.ASTVisitors.Implementations;
 using CILCompiler.Tokens;
+using System.Reflection;
+using System.Reflection.Metadata;
+using Mono.Cecil;
 
 var printStatement = new PrintStatementNode
 (
@@ -31,6 +34,12 @@ var lexer = new Lexer(src);
 var parser = new Parser(lexer);
 var obj = parser.Parse();
 var printer = new PrintVisitor();
+var generator = new ILCreationVisitor();
 
 obj.Accept(printer);
+var type = generator.CompileObject(obj).CreateType();
+var bar = Activator.CreateInstance(type);
+var result = type.GetMethod("Main").Invoke(bar, [10]);
+
+//Mono.Cecil.AssemblyDefinition assemblyDefinition = Mono.Cecil.AssemblyDefinition.ReadAssembly();
 ;

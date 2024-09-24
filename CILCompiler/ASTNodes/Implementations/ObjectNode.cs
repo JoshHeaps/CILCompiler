@@ -10,6 +10,6 @@ public sealed record ObjectNode(string Name, List<IFieldNode> Fields, List<IMeth
 {
     public T Accept<T>(INodeVisitor<T> visitor) =>
         visitor.VisitObject(this);
-    public void Accept(INodeVisitor visitor) =>
-        visitor.VisitObject(this);
+    public void Accept(INodeVisitor visitor, NodeVisitOptions? options = null) =>
+        visitor.VisitObject(this, options);
 }

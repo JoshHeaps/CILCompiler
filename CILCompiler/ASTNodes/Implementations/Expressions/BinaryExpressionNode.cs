@@ -10,6 +10,6 @@ public record BinaryExpressionNode(IExpressionNode Left, IExpressionNode Right, 
     public T Accept<T>(INodeVisitor<T> visitor) =>
         visitor.VisitBinaryExpression(this);
 
-    public void Accept(INodeVisitor visitor) =>
-        visitor.VisitBinaryExpression(this);
+    public void Accept(INodeVisitor visitor, NodeVisitOptions? options = null) =>
+        visitor.VisitBinaryExpression(this, options);
 }

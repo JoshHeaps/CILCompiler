@@ -9,8 +9,8 @@ public record ValueAccessorNode : IValueAccessorNode
     public T Accept<T>(INodeVisitor<T> visitor) =>
         visitor.VisitValueAccessor(this);
 
-    public void Accept(INodeVisitor visitor) =>
-        visitor.VisitValueAccessor(this);
+    public void Accept(INodeVisitor visitor, NodeVisitOptions? options = null) =>
+        visitor.VisitValueAccessor(this, options);
 
     public ValueAccessorNode(IExpressionNode expressionNode)
     {
@@ -18,6 +18,17 @@ public record ValueAccessorNode : IValueAccessorNode
     }
 
     public IExpressionNode ValueHolder { get; set; }
+
+    public Type GetValueType()
+    {
+        return ValueHolder switch
+        {
+            AssignmentNode assignmentNode => assignmentNode.Type,
+            BinaryExpressionNode binaryExpression => binaryExpression.Left is not null ? new ValueAccessorNode(binaryExpression.Left).GetValueType() : binaryExpression.Right is not null ? new ValueAccessorNode(binaryExpression.Right).GetValueType() : throw new InvalidProgramException(),
+            LiteralNode literalNode => literalNode.Value.GetType(),
+            _ => throw new NotImplementedException(),
+        };
+    }
 
     public object GetValue()
     {

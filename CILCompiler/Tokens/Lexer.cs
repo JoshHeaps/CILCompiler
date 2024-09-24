@@ -29,6 +29,7 @@ public class Lexer
         { '.', new (TokenType.Dot, ".") },
         { '=', new (TokenType.Equals, "=") },
         { '+', new (TokenType.Operator, "+") },
+        { '-', new (TokenType.Operator, "-") },
         { '(', new (TokenType.Parenthesis, "(") },
         { ')', new (TokenType.Parenthesis, ")") },
         { '"', new (TokenType.QuotationMark, "\"") },
@@ -82,6 +83,13 @@ public class Lexer
         NextChar();
 
         return new(TokenType.Error, string.Empty);
+    }
+
+    public Token GetString()
+    {
+        Predicate<char> predicate = c => c != '"';
+
+        return new(TokenType.Identifier, GetValue(predicate));
     }
 
     private string GetValue(Predicate<char> condition)

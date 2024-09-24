@@ -7,7 +7,7 @@ namespace CILCompiler.ASTVisitors.Implementations;
 
 public class PrintVisitor : INodeVisitor
 {
-    public void VisitBinaryExpression(BinaryExpressionNode node)
+    public void VisitBinaryExpression(BinaryExpressionNode node, NodeVisitOptions? options = null)
     {
         Console.Write("(");
         node.Left.Accept(this);
@@ -16,18 +16,23 @@ public class PrintVisitor : INodeVisitor
         Console.Write(")");
     }
 
-    public void VisitExpression(IExpressionNode node)
+    public void VisitExpression(IExpressionNode node, NodeVisitOptions? options = null)
     {
         if (node is LiteralNode literal)
-            Console.Write((literal?.Value?.GetType().Name ?? "") + " " + literal?.Value?.ToString() ?? "");
+        {
+            if (literal.Value.GetType() == typeof(string))
+                Console.Write((literal?.Value?.GetType().Name ?? "") + " \"" + literal?.Value?.ToString() + "\""?? "");
+            else
+                Console.Write((literal?.Value?.GetType().Name ?? "") + " " + literal?.Value?.ToString() ?? "");
+        }
 
-        if (node is BinaryExpressionNode binary)
+        else if (node is BinaryExpressionNode binary)
             binary.Accept(this);
 
-        if (node is AssignmentNode assignment)
+        else if (node is AssignmentNode assignment)
             assignment.Accept(this);
 
-        if (node is ReturnStatementNode returnStatement)
+        else if (node is ReturnStatementNode returnStatement)
             VisitReturnStatement(returnStatement);
     }
 
@@ -37,14 +42,14 @@ public class PrintVisitor : INodeVisitor
         returnStatement.ValueAccessor.Accept(this);
     }
 
-    public void VisitPrintStatement(PrintStatementNode node)
+    public void VisitPrintStatement(PrintStatementNode node, NodeVisitOptions? options = null)
     {
         Console.Write("print ");
         node.Expression.Accept(this);
         Console.WriteLine(";");
     }
 
-    public void VisitMethodCall(IMethodNode node)
+    public void VisitMethodCall(IMethodNode node, NodeVisitOptions? options = null)
     {
         Console.Write($"{node.ReturnType.Name} {node.Name}(");
 
@@ -69,51 +74,60 @@ public class PrintVisitor : INodeVisitor
         Console.WriteLine("}");
     }
 
-    public void VisitObject(IObjectNode node)
+    public void VisitObject(IObjectNode node, NodeVisitOptions? options = null)
     {
         Console.WriteLine(node.Name);
         Console.WriteLine("{");
 
+        Console.WriteLine();
+
         foreach (var field in node.Fields)
         {
             field.Accept(this);
-            Console.Write($" = {field.Value};");
+
+            if (field.Type == typeof(string))
+                Console.WriteLine($" = {field.Type.Name} \"{field.Value}\";");
+            else
+                Console.WriteLine($" = {field.Type.Name} {field.Value};");
         }
 
         Console.WriteLine();
 
         foreach (var method in node.Methods)
+        {
             method.Accept(this);
+            Console.WriteLine();
+        }
 
         Console.WriteLine("}");
     }
 
-    public void VisitField(IFieldNode node)
+    public void VisitField(IFieldNode node, NodeVisitOptions? options = null)
     {
         Console.Write($"{node.Type.Name} {node.Name}");
     }
 
-    public void VisitStatement(StatementNode node)
+    public void VisitStatement(StatementNode node, NodeVisitOptions? options = null)
     {
         Console.Write(node.Expression);
     }
 
-    public void VisitParameter(IParameterNode node)
+    public void VisitParameter(IParameterNode node, NodeVisitOptions? options = null)
     {
         Console.Write($"{node.Type.Name} {node.Name}");
     }
 
-    public void VisitLocalVariable(ILocalVariableNode node)
+    public void VisitLocalVariable(ILocalVariableNode node, NodeVisitOptions? options = null)
     {
         LocalVariableNode variable = (node as LocalVariableNode)!;
         Console.Write($"{node.Type.Name} {node.Name} = ");
         variable.ValueAccessor.Accept(this);
     }
 
-    public void VisitValueAccessor(IValueAccessorNode node) =>
+    public void VisitValueAccessor(IValueAccessorNode node, NodeVisitOptions? options = null) =>
         node.ValueHolder.Accept(this);
 
-    public void VisitAssignment(AssignmentNode node)
+    public void VisitAssignment(AssignmentNode node, NodeVisitOptions? options = null)
     {
         Console.Write($"{node.Type.Name} {node.VariableName} = ");
         node.ValueAccessor.Accept(this);

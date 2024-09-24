@@ -10,6 +10,6 @@ public record AssignmentNode(Type Type, string VariableName, IValueAccessorNode 
     public T Accept<T>(INodeVisitor<T> visitor) =>
         visitor.VisitAssignment(this);
 
-    public void Accept(INodeVisitor visitor) =>
-        visitor.VisitAssignment(this);
+    public void Accept(INodeVisitor visitor, NodeVisitOptions? options = null) =>
+        visitor.VisitAssignment(this, options);
 }

@@ -1,5 +1,6 @@
 ﻿using CILCompiler.ASTNodes.Implementations.Expressions;
 using CILCompiler.ASTNodes.Interfaces;
+using System.Reflection.Emit;
 
 namespace CILCompiler.ASTVisitors.Interfaces;
 
@@ -20,15 +21,42 @@ public interface INodeVisitor<T>
 
 public interface INodeVisitor
 {
-    public void VisitBinaryExpression(BinaryExpressionNode node);
-    public void VisitExpression(IExpressionNode node);
-    public void VisitPrintStatement(PrintStatementNode node);
-    public void VisitMethodCall(IMethodNode node);
-    public void VisitObject(IObjectNode node);
-    public void VisitField(IFieldNode node);
-    public void VisitStatement(StatementNode node);
-    public void VisitParameter(IParameterNode node);
-    public void VisitLocalVariable(ILocalVariableNode node);
-    public void VisitValueAccessor(IValueAccessorNode node);
-    public void VisitAssignment(AssignmentNode node);
+    public void VisitBinaryExpression(BinaryExpressionNode node, NodeVisitOptions? options = null);
+    public void VisitExpression(IExpressionNode node, NodeVisitOptions? options = null);
+    public void VisitPrintStatement(PrintStatementNode node, NodeVisitOptions? options = null);
+    public void VisitMethodCall(IMethodNode node, NodeVisitOptions? options = null);
+    public void VisitObject(IObjectNode node, NodeVisitOptions? options = null);
+    public void VisitField(IFieldNode node, NodeVisitOptions? options = null);
+    public void VisitStatement(StatementNode node, NodeVisitOptions? options = null);
+    public void VisitParameter(IParameterNode node, NodeVisitOptions? options = null);
+    public void VisitLocalVariable(ILocalVariableNode node, NodeVisitOptions? options = null);
+    public void VisitValueAccessor(IValueAccessorNode node, NodeVisitOptions? options = null);
+    public void VisitAssignment(AssignmentNode node, NodeVisitOptions? options = null);
+}
+
+public interface IOptionsNodeVisitor
+{
+    public void VisitBinaryExpression(BinaryExpressionNode node, NodeVisitOptions? options = null);
+    public void VisitExpression(IExpressionNode node, NodeVisitOptions? options = null);
+    public void VisitPrintStatement(PrintStatementNode node, NodeVisitOptions? options = null);
+    public void VisitMethodCall(IMethodNode node, NodeVisitOptions? options = null);
+    public void VisitObject(IObjectNode node, NodeVisitOptions? options = null);
+    public void VisitField(IFieldNode node, NodeVisitOptions? options = null);
+    public void VisitStatement(StatementNode node, NodeVisitOptions? options = null);
+    public void VisitParameter(IParameterNode node, NodeVisitOptions? options = null);
+    public void VisitLocalVariable(ILocalVariableNode node, NodeVisitOptions? options = null);
+    public void VisitValueAccessor(IValueAccessorNode node, NodeVisitOptions? options = null);
+    public void VisitAssignment(AssignmentNode node, NodeVisitOptions? options = null);
+    public void VisitReturnStatement(ReturnStatementNode node, NodeVisitOptions? options = null);
+}
+
+public class NodeVisitOptions
+{
+    private ILGenerator? _generator;
+    public ILGenerator IL { get => _generator ?? throw new NullReferenceException("ILGenerator is null"); set => _generator = value; }
+
+    public List<ParameterBuilder> Parameters { get; set; } = [];
+
+    private MethodBuilder _methodBuilder;
+    public MethodBuilder Method { get => _methodBuilder ?? throw new NullReferenceException("Method is null"); set => _methodBuilder = value; }
 }

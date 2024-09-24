@@ -10,8 +10,8 @@ public record LiteralNode(object Value) : IExpressionNode
 
     public T Accept<T>(INodeVisitor<T> visitor) =>
         visitor.VisitExpression(this);
-    public void Accept(INodeVisitor visitor) =>
-        visitor.VisitExpression(this);
+    public void Accept(INodeVisitor visitor, NodeVisitOptions? options = null) =>
+        visitor.VisitExpression(this, options);
 }
 
 public record LiteralNode<T>(T Number) : IExpressionNode where T : INumber<T>
@@ -20,6 +20,6 @@ public record LiteralNode<T>(T Number) : IExpressionNode where T : INumber<T>
 
     public TResult Accept<TResult>(INodeVisitor<TResult> visitor) =>
         visitor.VisitExpression(this);
-    public void Accept(INodeVisitor visitor) =>
-        visitor.VisitExpression(this);
+    public void Accept(INodeVisitor visitor, NodeVisitOptions? options = null) =>
+        visitor.VisitExpression(this, options);
 }

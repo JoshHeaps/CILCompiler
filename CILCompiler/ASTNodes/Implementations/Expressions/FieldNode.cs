@@ -14,8 +14,8 @@ public record FieldNode(string Name, IExpressionNode ValueContainer) : IFieldNod
     public T Accept<T>(INodeVisitor<T> visitor) =>
         visitor.VisitField(this);
 
-    public void Accept(INodeVisitor visitor) =>
-        visitor.VisitField(this);
+    public void Accept(INodeVisitor visitor, NodeVisitOptions? options = null) =>
+        visitor.VisitField(this, options);
 }
 
 public record FieldNode<T>(string Name, IExpressionNode ValueContainer) : ITypedFieldNode<T> where T : class
@@ -38,6 +38,6 @@ public record FieldNode<T>(string Name, IExpressionNode ValueContainer) : ITyped
     public TResult Accept<TResult>(INodeVisitor<TResult> visitor) =>
         visitor.VisitField(this);
 
-    public void Accept(INodeVisitor visitor) =>
-        visitor.VisitField(this);
+    public void Accept(INodeVisitor visitor, NodeVisitOptions? options = null) =>
+        visitor.VisitField(this, options);
 }

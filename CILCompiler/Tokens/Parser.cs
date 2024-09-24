@@ -37,16 +37,22 @@ public class Parser
         Eat(TokenType.Brace); // "{"
 
         // Parse fields first, so method bodies can access them.
+        int depth = 0;
 
         while (_currentToken.Type != TokenType.EndOfFile)
         {
-            while (_currentToken.Type == TokenType.Type)
+            while (_currentToken.Type == TokenType.Type && depth == 0)
             {
                 if (PeekNextToken().Type != TokenType.Parenthesis)
                     _fields.Add(ParseField());
                 else
-                    _ = ParseMethod();
+                    break;
             }
+
+            if (_currentToken.Value == "{")
+                depth++;
+            else if (_currentToken.Value == "}")
+                depth--;
 
             Eat(TokenType.Any); // "}", ";" both of those are options, as stray semicolons are allowed.
         }
@@ -61,7 +67,7 @@ public class Parser
                 if (PeekNextToken().Type == TokenType.Parenthesis)
                     _methods.Add(ParseMethod());
                 else
-                    _ = ParseField();
+                    break;
             }
 
             Eat(TokenType.Any); // "}", ";" both of those are options, as stray semicolons are allowed.
@@ -172,7 +178,7 @@ public class Parser
 
     private IExpressionNode ParseExpression(Type? type = null, List<IParameterNode>? parameters = null, List<ILocalVariableNode>? locals = null)
     {
-        if (PeekNextToken().Type == TokenType.Operator)
+        if (PeekUntil(TokenType.Semicolon).Any(x => x.Type == TokenType.Operator))
             return ParseBinaryOperation(type, parameters, locals);
 
         if (_currentToken.Type == TokenType.QuotationMark && type == typeof(string))
@@ -200,6 +206,7 @@ public class Parser
         string name = ParseIdentifier();
         var type = locals.FirstOrDefault(x => x.Name == name)?.Type
             ?? parameters.FirstOrDefault(x => x.Name == name)?.Type
+            ?? _fields.FirstOrDefault(x => x.Name == name)?.Type
             ?? throw new InvalidProgramException("Identifier doesn't exist in this context.");
 
         Eat(TokenType.Equals);
@@ -214,17 +221,19 @@ public class Parser
         type ??= typeof(object);
 
         IExpressionNode? expression = null;
-
-        if (type == typeof(string)) // "
-            Eat(TokenType.QuotationMark);
-
         var identifier = string.Empty;
 
-        while (_currentToken.Type == TokenType.Identifier)
-            identifier += ParseIdentifier(); // 12, apple
+        if (type == typeof(string) && _currentToken.Type == TokenType.QuotationMark)
+        {
+            identifier += _lexer.GetString().Value;
 
-        if (type == typeof(string))
-            Eat(TokenType.QuotationMark); // "
+            Eat(TokenType.QuotationMark);
+            Eat(TokenType.QuotationMark);
+
+            return new LiteralNode(typeConversions[type](identifier));
+        }
+
+        identifier = ParseIdentifier();
 
         if (parameters is not null && parameters.Any(x => x.Name == identifier))
             expression = parameters.First(x => x.Name == identifier);
@@ -267,9 +276,6 @@ public class Parser
     private BinaryExpressionNode ParseBinaryOperation(Type? type = null, List<IParameterNode>? parameters = null, List<ILocalVariableNode>? locals = null)
     {
         type ??= typeof(object);
-        // For now, we'll handle only basic expressions as method statements
-        if (_currentToken.Type != TokenType.Identifier)
-            throw new Exception("Unexpected statement");
 
         IExpressionNode left = ParseValue(type, parameters, locals);
         string Operator = ParseOperator();
