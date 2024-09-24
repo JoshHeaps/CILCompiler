@@ -22,6 +22,7 @@ public class ILCreationVisitor : INodeVisitor
     private List<FieldBuilder> fields = [];
     private List<(ILocalVariableNode node, LocalBuilder builder)> locals = [];
     private List<MethodBuilder> methods = [];
+    private int expressionChecks = 0;
 
     public void VisitObject(IObjectNode node, NodeVisitOptions? options = null)
     {
@@ -45,10 +46,14 @@ public class ILCreationVisitor : INodeVisitor
 
         var field = fields.FirstOrDefault(x => x.Name == node.Name) ?? throw new NullReferenceException($"{node.Name} does not exist in this context.");
 
-        il.Emit(OpCodes.Ldarg_0);
-        //Console.WriteLine(@"il.Emit(OpCodes.Ldarg_0);");
+        if (expressionChecks != 0)
+        {
+            il.Emit(OpCodes.Ldarg_0);
+            Console.WriteLine(@"il.Emit(OpCodes.Ldarg_0);");
+        }
+
         il.Emit(OpCodes.Ldfld, field);
-        //Console.WriteLine($"il.Emit(OpCodes.Ldfld, {field.Name});");
+        Console.WriteLine($"il.Emit(OpCodes.Ldfld, {field.Name});");
     }
 
     public void VisitMethodCall(IMethodNode node, NodeVisitOptions? options = null)
@@ -62,10 +67,22 @@ public class ILCreationVisitor : INodeVisitor
             parameters.Add(methodBuilder.DefineParameter(i + 1, ParameterAttributes.In, node.Parameters[i].Name));
 
         var il = methodBuilder.GetILGenerator();
+        bool firstTime = false;
+
 
         foreach (var expression in node.Body)
         {
+            if (firstTime)
+            {
+                il.Emit(OpCodes.Ldarg_0);
+                Console.WriteLine(@"il.Emit(OpCodes.Ldarg_0);");
+            }
+
+            expressionChecks = 0;
             expression.Accept(this, new() { IL = il, Parameters = parameters, Method = methodBuilder });
+
+            if (!firstTime)
+                firstTime = true;
         }
 
         //il.Emit(OpCodes.Ldarg, parameters[0].Position);
@@ -92,17 +109,18 @@ public class ILCreationVisitor : INodeVisitor
         ILGenerator il = options.IL;
 
         node.Left.Accept(this, options);
+        expressionChecks++;
         node.Right.Accept(this, options);
 
         if (node.Operator == "+")
         {
             il.Emit(OpCodes.Add);
-            //Console.WriteLine("il.Emit(OpCodes.Add);");
+            Console.WriteLine("il.Emit(OpCodes.Add);");
         }
         else if (node.Operator == "-")
         {
             il.Emit(OpCodes.Sub);
-            //Console.WriteLine("il.Emit(OpCodes.Sub);");
+            Console.WriteLine("il.Emit(OpCodes.Sub);");
         }
     }
 
@@ -119,6 +137,8 @@ public class ILCreationVisitor : INodeVisitor
 
         else if (node is ReturnStatementNode returnStatement)
             VisitReturnStatement(returnStatement, options);
+
+        expressionChecks++;
     }
 
     public void VisitLocalVariable(ILocalVariableNode node, NodeVisitOptions? options = null)
@@ -132,7 +152,7 @@ public class ILCreationVisitor : INodeVisitor
         locals.Add((variable, il.DeclareLocal(variable.Type)));
         variable.ValueAccessor.Accept(this, options);
         il.Emit(OpCodes.Stloc, locals[^1].builder);
-        //Console.WriteLine($"il.Emit(OpCodes.Stloc, {locals[^1].node.Name});");
+        Console.WriteLine($"il.Emit(OpCodes.Stloc, {locals[^1].node.Name});");
     }
 
     public void VisitParameter(IParameterNode node, NodeVisitOptions? options = null)
@@ -143,7 +163,7 @@ public class ILCreationVisitor : INodeVisitor
         var param = options.Parameters.First(x => x.Name == node.Name);
 
         il.Emit(OpCodes.Ldarg, (short)param.Position);
-        //Console.WriteLine($"il.Emit(OpCodes.Ldarg, {param.Position});");
+        Console.WriteLine($"il.Emit(OpCodes.Ldarg, {param.Position});");
     }
 
     public void VisitPrintStatement(PrintStatementNode node, NodeVisitOptions? options = null)
@@ -179,18 +199,17 @@ public class ILCreationVisitor : INodeVisitor
         if (parameter is not null)
         {
             il.Emit(OpCodes.Starg, parameter.Position);
-            //Console.WriteLine($"il.Emit(OpCodes.Starg, {parameter.Position});");
-            il.Emit(OpCodes.Ldarg_0);
+            Console.WriteLine($"il.Emit(OpCodes.Starg, {parameter.Position});");
         }
         else if (local.builder is not null)
         {
             il.Emit(OpCodes.Stloc, local.builder);
-            //Console.WriteLine($"il.Emit(OpCodes.Stloc, {local.node!.Name});");
+            Console.WriteLine($"il.Emit(OpCodes.Stloc, {local.node!.Name});");
         }
         else if (field is not null)
         {
             il.Emit(OpCodes.Stfld, field);
-            //Console.WriteLine($"il.Emit(OpCodes.Stfld, {field.Name});");
+            Console.WriteLine($"il.Emit(OpCodes.Stfld, {field.Name});");
         }
     }
 
@@ -214,7 +233,7 @@ public class ILCreationVisitor : INodeVisitor
             else
             {
                 constructorGenerator.AddObjectToStack(field.Value);
-                //Console.WriteLine(@"il.AddObjectToStack(literal.Value);");
+                Console.WriteLine(@"il.AddObjectToStack(literal.Value);");
             }
 
             constructorGenerator.Emit(OpCodes.Stfld, fields[^1]);
@@ -229,14 +248,14 @@ public class ILCreationVisitor : INodeVisitor
             typeof(int), (il, x) => 
             {
                 il.Emit(OpCodes.Ldc_I4, (int)x);
-                //Console.WriteLine($"il.Emit(OpCodes.Ldc_I4, {(int)x});");
+                Console.WriteLine($"il.Emit(OpCodes.Ldc_I4, {(int)x});");
             } 
         },
         { 
             typeof(string), (il, x) =>
             {
                 il.Emit(OpCodes.Ldstr, x.ToString() ?? "");
-                //Console.WriteLine($"il.Emit(OpCodes.Ldstr, {x} ??\"\");");
+                Console.WriteLine($"il.Emit(OpCodes.Ldstr, {x} ??\"\");");
             }
         },
     };
@@ -254,7 +273,7 @@ public class ILCreationVisitor : INodeVisitor
         else
         {
             il.AddObjectToStack(literal.Value);
-            //Console.WriteLine(@"il.AddObjectToStack(literal.Value);");
+            Console.WriteLine(@"il.AddObjectToStack(literal.Value);");
         }
     }
 
@@ -266,6 +285,6 @@ public class ILCreationVisitor : INodeVisitor
 
         node.ValueAccessor.Accept(this, options);
         il.Emit(OpCodes.Ret);
-        //Console.WriteLine(@"il.Emit(OpCodes.Ret);");
+        Console.WriteLine(@"il.Emit(OpCodes.Ret);");
     }
 }

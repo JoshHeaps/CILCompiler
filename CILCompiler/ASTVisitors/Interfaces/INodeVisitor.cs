@@ -59,4 +59,6 @@ public class NodeVisitOptions
 
     private MethodBuilder _methodBuilder;
     public MethodBuilder Method { get => _methodBuilder ?? throw new NullReferenceException("Method is null"); set => _methodBuilder = value; }
+
+    public bool IsFirst = true;
 }
