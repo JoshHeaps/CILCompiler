@@ -43,7 +43,7 @@ public class Parser
         {
             while (_currentToken.Type == TokenType.Type && depth == 0)
             {
-                if (PeekNextToken().Type != TokenType.Parenthesis)
+                if (PeekNextToken().Type != TokenType.Parenthesis && PeekNextToken().Type != TokenType.Comma)
                     _fields.Add(ParseField());
                 else
                     break;

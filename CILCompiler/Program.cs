@@ -39,7 +39,7 @@ var generator = new ILCreationVisitor();
 obj.Accept(printer);
 var type = generator.CompileObject(obj).CreateType();
 var bar = Activator.CreateInstance(type);
-Console.WriteLine(type.GetMethod("Main").Invoke(bar, [10]));
+Console.WriteLine(type.GetMethod("Main").Invoke(bar, [100]));
 
 //Mono.Cecil.AssemblyDefinition assemblyDefinition = Mono.Cecil.AssemblyDefinition.ReadAssembly();
 ;
