@@ -26,6 +26,7 @@ public record ValueAccessorNode : IValueAccessorNode
             AssignmentNode assignmentNode => assignmentNode.Type,
             BinaryExpressionNode binaryExpression => binaryExpression.Left is not null ? new ValueAccessorNode(binaryExpression.Left).GetValueType() : binaryExpression.Right is not null ? new ValueAccessorNode(binaryExpression.Right).GetValueType() : throw new InvalidProgramException(),
             LiteralNode literalNode => literalNode.Value.GetType(),
+            FieldNode fieldNode => fieldNode.Value.GetType(),
             _ => throw new NotImplementedException(),
         };
     }
