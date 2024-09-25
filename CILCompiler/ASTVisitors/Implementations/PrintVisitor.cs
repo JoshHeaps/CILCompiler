@@ -125,11 +125,16 @@ public class PrintVisitor : INodeVisitor
     }
 
     public void VisitValueAccessor(IValueAccessorNode node, NodeVisitOptions? options = null) =>
-        node.ValueHolder.Accept(this);
+        node.ValueContainer.Accept(this);
 
     public void VisitAssignment(AssignmentNode node, NodeVisitOptions? options = null)
     {
         Console.Write($"{node.Type.Name} {node.VariableName} = ");
         node.ValueAccessor.Accept(this);
+    }
+
+    public void VisitMethodCall(IMethodCallNode node, NodeVisitOptions? options = null)
+    {
+        throw new NotImplementedException();
     }
 }

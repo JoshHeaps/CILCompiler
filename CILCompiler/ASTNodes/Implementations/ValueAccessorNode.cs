@@ -14,14 +14,14 @@ public record ValueAccessorNode : IValueAccessorNode
 
     public ValueAccessorNode(IExpressionNode expressionNode)
     {
-        ValueHolder = expressionNode;
+        ValueContainer = expressionNode;
     }
 
-    public IExpressionNode ValueHolder { get; set; }
+    public IExpressionNode ValueContainer { get; set; }
 
     public Type GetValueType()
     {
-        return ValueHolder switch
+        return ValueContainer switch
         {
             AssignmentNode assignmentNode => assignmentNode.Type,
             BinaryExpressionNode binaryExpression => binaryExpression.Left is not null ? new ValueAccessorNode(binaryExpression.Left).GetValueType() : binaryExpression.Right is not null ? new ValueAccessorNode(binaryExpression.Right).GetValueType() : throw new InvalidProgramException(),
@@ -32,7 +32,7 @@ public record ValueAccessorNode : IValueAccessorNode
 
     public object GetValue()
     {
-        return ValueHolder switch
+        return ValueContainer switch
         {
             AssignmentNode assignmentNode => GetValueFromAssignment(assignmentNode),
             BinaryExpressionNode binaryExpression => GetValueFromBinaryExpression(binaryExpression),
@@ -46,7 +46,7 @@ public record ValueAccessorNode : IValueAccessorNode
 
     public void SetValue(IExpressionNode expressionNode)
     {
-        ValueHolder = expressionNode;
+        ValueContainer = expressionNode;
     }
 
     private object GetValueFromBinaryExpression(BinaryExpressionNode binaryExpression)

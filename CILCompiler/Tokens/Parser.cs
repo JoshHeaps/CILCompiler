@@ -3,7 +3,6 @@ using CILCompiler.ASTNodes.Implementations;
 using CILCompiler.ASTNodes.Implementations.Expressions;
 using CILCompiler.ASTNodes.Interfaces;
 using CILCompiler.Utilities;
-using System.Linq.Expressions;
 
 namespace CILCompiler.Tokens;
 
@@ -34,55 +33,76 @@ public class Parser
     {
         Eat(TokenType.Keyword); // class
         var name = ParseIdentifier(); // class name
-        Eat(TokenType.Brace); // "{"
 
+        ParseFields();
+
+        ParseMethods();
+
+        return new(name, _fields, _methods);
+    }
+
+    private void ParseFields()
+    {
         // Parse fields first, so method bodies can access them.
         int depth = 0;
 
         while (_currentToken.Type != TokenType.EndOfFile)
         {
-            while (_currentToken.Type == TokenType.Type && depth == 0)
-            {
-                if (PeekNextToken().Type != TokenType.Parenthesis && PeekNextToken().Type != TokenType.Comma)
-                    _fields.Add(ParseField());
-                else
-                    break;
-            }
+            Eat(TokenType.Any);
 
             if (_currentToken.Value == "{")
                 depth++;
             else if (_currentToken.Value == "}")
                 depth--;
 
-            Eat(TokenType.Any); // "}", ";" both of those are options, as stray semicolons are allowed.
+            bool currentTokenCanBeField = _currentToken.Type == TokenType.Type && depth == 0;
+
+            if (!currentTokenCanBeField)
+                continue;
+
+            bool isCurrentTokenMethod = PeekNextToken().Type == TokenType.Parenthesis;
+            bool isCurrentTokenParameter = PeekNextToken().Type == TokenType.Comma;
+            bool isField = !isCurrentTokenMethod && !isCurrentTokenParameter;
+
+            if (isField)
+                _fields.Add(ParseField());
         }
 
         _lexer.Position = 0;
         _currentToken = _lexer.Advance();
+        Eat(TokenType.Keyword);
+        Eat(TokenType.Identifier);
+    }
+
+    private void ParseMethods()
+    {
+        int depth = 0;
 
         while (_currentToken.Type != TokenType.EndOfFile)
         {
-            while (_currentToken.Type == TokenType.Type)
-            {
-                if (PeekNextToken().Type == TokenType.Parenthesis)
-                    _methods.Add(ParseMethod());
-                else
-                    break;
-            }
+            Eat(TokenType.Any);
 
-            Eat(TokenType.Any); // "}", ";" both of those are options, as stray semicolons are allowed.
+            if (_currentToken.Value == "{")
+                depth++;
+            else if (_currentToken.Value == "}")
+                depth--;
+
+            bool currentTokenCanBeField = _currentToken.Type == TokenType.Type && depth == 0;
+
+            if (!currentTokenCanBeField)
+                continue;
+
+            bool isCurrentTokenMethod = PeekNextToken().Type == TokenType.Parenthesis;
+
+            if (isCurrentTokenMethod)
+                _methods.Add(ParseMethod());
         }
 
-        return new(name, _fields, _methods);
+        _lexer.Position = 0;
+        _currentToken = _lexer.Advance();
+        Eat(TokenType.Keyword);
+        Eat(TokenType.Identifier);
     }
-
-    private readonly Dictionary<Type, Func<string, object>> _converter = new()
-    {
-        { typeof(int), x => int.Parse(x) },
-        { typeof(long), x => long.Parse(x) },
-        { typeof(string), x => x },
-        { typeof(bool), x => bool.Parse(x) },
-    };
 
     private FieldNode ParseField()
     {
@@ -92,7 +112,6 @@ public class Parser
 
         var expression = ParseExpression(type);
 
-        Eat(TokenType.Semicolon); // ";"
         return new(name, expression);
     }
 
@@ -152,13 +171,17 @@ public class Parser
         while (_currentToken.Type != TokenType.Brace)
         {
             if (_currentToken.Type == TokenType.Type && PeekNextToken().Type == TokenType.Equals)
-                body.Add(ParseLocalDeclaration(locals, parameters));
+                body.Add(ParseLocalDeclaration(parameters, locals));
 
             else if (_currentToken.Type == TokenType.Identifier && PeekNextToken().Type == TokenType.Equals)
-                body.Add(ParseValueAssignment(locals, parameters));
+                body.Add(ParseValueAssignment(parameters, locals));
+
+            else if (_currentToken.Type == TokenType.Identifier 
+                && (PeekNextToken().Type == TokenType.Parenthesis || NextTypesAre(TokenType.Dot, TokenType.Identifier, TokenType.Parenthesis)))
+                body.Add(ParseMethodCall(parameters, locals));
 
             else if (_currentToken.Type == TokenType.Return)
-                body.Add(ParseReturnStatement(type, locals, parameters));
+                body.Add(ParseReturnStatement(type, parameters, locals));
 
             if (body.Count > 0 && body[^1] is ILocalVariableNode local)
                 locals.Add(local);
@@ -169,7 +192,14 @@ public class Parser
         return body;
     }
 
-    private ReturnStatementNode ParseReturnStatement(Type type, List<ILocalVariableNode> locals, List<IParameterNode> parameters)
+    private MethodCallNode ParseMethodCall(List<IParameterNode> parameters, List<ILocalVariableNode> locals)
+    {
+
+
+        throw new NotImplementedException();
+    }
+
+    private ReturnStatementNode ParseReturnStatement(Type type, List<IParameterNode> parameters, List<ILocalVariableNode> locals)
     {
         Eat(TokenType.Return);
 
@@ -201,7 +231,7 @@ public class Parser
         return expression;
     }
 
-    private AssignmentNode ParseValueAssignment(List<ILocalVariableNode> locals, List<IParameterNode> parameters)
+    private AssignmentNode ParseValueAssignment(List<IParameterNode> parameters, List<ILocalVariableNode> locals)
     {
         string name = ParseIdentifier();
         var type = locals.FirstOrDefault(x => x.Name == name)?.Type
@@ -247,7 +277,7 @@ public class Parser
         return expression;
     }
 
-    private ILocalVariableNode ParseLocalDeclaration(List<ILocalVariableNode> locals, List<IParameterNode> parameters)
+    private ILocalVariableNode ParseLocalDeclaration(List<IParameterNode> parameters, List<ILocalVariableNode> locals)
     {
         int declaredPosition = _lexer.Position;
         var type = ParseType();
@@ -273,13 +303,52 @@ public class Parser
         { typeof(object), value => value },
     };
 
-    private BinaryExpressionNode ParseBinaryOperation(Type? type = null, List<IParameterNode>? parameters = null, List<ILocalVariableNode>? locals = null)
+    Dictionary<string, int> operatorPriorities = new()
+    {
+        { "+", 0 },
+        { "-", 0 },
+        { "*", 1 },
+        { "/", 1 },
+        { "%", 1 },
+        { "^", 2 },
+    };
+
+    private IExpressionNode ParseBinaryOperation(Type? type = null, List<IParameterNode>? parameters = null, List<ILocalVariableNode>? locals = null)
     {
         type ??= typeof(object);
 
-        IExpressionNode left = ParseValue(type, parameters, locals);
-        string Operator = ParseOperator();
-        IExpressionNode right = ParseValue(type, parameters, locals);
+        List<IExpressionNode> values = [];
+        List<string> operators = [];
+
+        values.Add(ParseValue(type, parameters, locals));
+
+        while (_currentToken.Type != TokenType.Semicolon)
+        {
+            operators.Add(ParseOperator());
+            values.Add(ParseValue(type, parameters, locals));
+        }
+
+        return PrioritizeOperations(values, operators, type, parameters, locals);
+    }
+
+    private IExpressionNode PrioritizeOperations(List<IExpressionNode> values, List<string> operators, Type? type = null, List<IParameterNode>? parameters = null, List<ILocalVariableNode>? locals = null)
+    {
+        if (values.Count == 2)
+            return new BinaryExpressionNode(values[0], values[1], operators[0]);
+
+        if (values.Count == 1)
+            return values[0];
+
+        var lowestPriorityIndex = operators.LastIndexOf(operators.MinBy(x => operatorPriorities[x])!);
+
+        var leftValues = values[..(lowestPriorityIndex + 1)];
+        var leftOperators = operators.Take(lowestPriorityIndex).ToList();
+        var rightValues = values[(lowestPriorityIndex + 1)..];
+        var rightOperators = operators.TakeLast(operators.Count - leftOperators.Count - 1).ToList();
+
+        IExpressionNode left = PrioritizeOperations(leftValues, leftOperators, type, parameters, locals);
+        string Operator = operators[lowestPriorityIndex];
+        IExpressionNode right = PrioritizeOperations(rightValues, rightOperators, type, parameters, locals);
 
         return new BinaryExpressionNode(left, right, Operator);
     }
@@ -332,5 +401,16 @@ public class Parser
         _lexer.Position = savedPosition;  // restore the position
 
         return tokens;
+    }
+
+    private bool NextTypesAre(params TokenType[] types)
+    {
+        var savedPosition = _lexer.Position;  // save the current position
+
+        bool result = !types.Any(type => _lexer.Advance().Type != type);
+
+        _lexer.Position = savedPosition;  // restore the position
+
+        return result;
     }
 }

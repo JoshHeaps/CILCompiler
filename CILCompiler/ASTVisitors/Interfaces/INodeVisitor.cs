@@ -17,6 +17,7 @@ public interface INodeVisitor<T>
     public T VisitLocalVariable(ILocalVariableNode node);
     public T VisitValueAccessor(IValueAccessorNode node);
     public T VisitAssignment(AssignmentNode node);
+    public T VisitMethodCall(IMethodCallNode node, NodeVisitOptions? options = null);
 }
 
 public interface INodeVisitor
@@ -32,6 +33,7 @@ public interface INodeVisitor
     public void VisitLocalVariable(ILocalVariableNode node, NodeVisitOptions? options = null);
     public void VisitValueAccessor(IValueAccessorNode node, NodeVisitOptions? options = null);
     public void VisitAssignment(AssignmentNode node, NodeVisitOptions? options = null);
+    public void VisitMethodCall(IMethodCallNode node, NodeVisitOptions? options = null);
 }
 
 public interface IOptionsNodeVisitor

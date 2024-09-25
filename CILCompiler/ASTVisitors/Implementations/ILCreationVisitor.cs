@@ -97,6 +97,11 @@ public class ILCreationVisitor : INodeVisitor
             il.Emit(OpCodes.Sub);
             Console.WriteLine("sub");
         }
+        else if (node.Operator == "*")
+        {
+            il.Emit(OpCodes.Mul);
+            Console.WriteLine("mul");
+        }
     }
 
     public void VisitExpression(IExpressionNode node, NodeVisitOptions? options = null)
@@ -162,7 +167,7 @@ public class ILCreationVisitor : INodeVisitor
 
     public void VisitValueAccessor(IValueAccessorNode node, NodeVisitOptions? options = null)
     {
-        node.ValueHolder.Accept(this, options);
+        node.ValueContainer.Accept(this, options);
     }
 
     public void VisitAssignment(AssignmentNode node, NodeVisitOptions? options = null)
@@ -183,6 +188,12 @@ public class ILCreationVisitor : INodeVisitor
             il.Emit(OpCodes.Ldarg_0);
             Console.WriteLine(@"ldarg.0");
         }
+
+        //if (parameter is not null)
+        //{
+        //    il.Emit(OpCodes.Ldarg, (short)parameter.Position);
+        //    Console.WriteLine($"ldarg.{(short)parameter.Position}");
+        //}
 
         node.ValueAccessor.Accept(this, options); // Add value to store at top of the stack.
 
@@ -276,5 +287,10 @@ public class ILCreationVisitor : INodeVisitor
         node.ValueAccessor.Accept(this, options);
         il.Emit(OpCodes.Ret);
         Console.WriteLine(@"ret");
+    }
+
+    public void VisitMethodCall(IMethodCallNode node, NodeVisitOptions? options = null)
+    {
+        throw new NotImplementedException();
     }
 }

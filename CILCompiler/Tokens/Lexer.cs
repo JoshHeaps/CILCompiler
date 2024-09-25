@@ -30,6 +30,8 @@ public class Lexer
         { '=', new (TokenType.Equals, "=") },
         { '+', new (TokenType.Operator, "+") },
         { '-', new (TokenType.Operator, "-") },
+        { '*', new (TokenType.Operator, "*") },
+        { '/', new (TokenType.Operator, "/") },
         { '(', new (TokenType.Parenthesis, "(") },
         { ')', new (TokenType.Parenthesis, ")") },
         { '"', new (TokenType.QuotationMark, "\"") },
