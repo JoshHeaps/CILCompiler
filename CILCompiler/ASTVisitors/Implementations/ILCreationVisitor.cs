@@ -10,19 +10,17 @@ namespace CILCompiler.ASTVisitors.Implementations;
 
 public class ILCreationVisitor : INodeVisitor
 {
-    public TypeBuilder CompileObject(IObjectNode node)
+    public List<TypeBuilder> CompileObject(List<IObjectNode> nodes)
     {
-        node.Accept(this);
+        nodes[0].Accept(this);
 
-        return typeBuilder!;
+        return [typeBuilder!];
     }
 
     private TypeBuilder? _tb;
     private TypeBuilder typeBuilder { get => _tb ?? throw new Exception("Type Builder is not defined"); set => _tb = value; }
     private List<FieldBuilder> fields = [];
     private List<(ILocalVariableNode node, LocalBuilder builder)> locals = [];
-    private List<MethodBuilder> methods = [];
-    private int expressionChecks = 0;
 
     public void VisitObject(IObjectNode node, NodeVisitOptions? options = null)
     {
@@ -55,10 +53,10 @@ public class ILCreationVisitor : INodeVisitor
         il.Emit(OpCodes.Ldarg_0);
         Console.WriteLine(@"ldarg.0");
         il.Emit(OpCodes.Ldfld, field);
-        Console.WriteLine($"ldfld {node.Type.Name} {field.Name}");
+        Console.WriteLine($"ldfld {node.Type.Name.ToLower()} {typeBuilder.Name}::{field.Name}");
     }
 
-    public void VisitMethodCall(IMethodNode node, NodeVisitOptions? options = null)
+    public void VisitMethod(IMethodNode node, NodeVisitOptions? options = null)
     {
         locals = [];
         Type[] parameterTypes = node.Parameters.Select(x => x.Type).ToArray();
@@ -72,7 +70,6 @@ public class ILCreationVisitor : INodeVisitor
 
         foreach (var expression in node.Body)
         {
-            expressionChecks = 0;
             expression.Accept(this, new() { IL = il, Parameters = parameters, Method = methodBuilder });
         }
     }
@@ -84,7 +81,6 @@ public class ILCreationVisitor : INodeVisitor
         ILGenerator il = options.IL;
 
         node.Left.Accept(this, options);
-        expressionChecks++;
         node.Right.Accept(this, options);
 
         if (node.Operator == "+")
@@ -117,8 +113,6 @@ public class ILCreationVisitor : INodeVisitor
 
         else if (node is ReturnStatementNode returnStatement)
             VisitReturnStatement(returnStatement, options);
-
-        expressionChecks++;
     }
 
     public void VisitLocalVariable(ILocalVariableNode node, NodeVisitOptions? options = null)
@@ -284,13 +278,42 @@ public class ILCreationVisitor : INodeVisitor
         ArgumentNullException.ThrowIfNull(options.IL);
         ILGenerator il = options.IL;
 
-        node.ValueAccessor.Accept(this, options);
+        if (node.ValueAccessor.ValueContainer is not null)
+            node.ValueAccessor.Accept(this, options);
+
         il.Emit(OpCodes.Ret);
         Console.WriteLine(@"ret");
     }
 
     public void VisitMethodCall(IMethodCallNode node, NodeVisitOptions? options = null)
     {
-        throw new NotImplementedException();
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(options.IL);
+        ILGenerator il = options.IL;
+
+        var callNode = node as MethodCallNode ?? throw new NullReferenceException();
+
+        if (callNode.MethodNode.Name == "Print")
+        {
+            callNode.Arguments[0].Accept(this, options);
+            il.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", new[] { callNode.Arguments[0].GetValueType() })!);
+            Console.WriteLine($"call void [System.Console]System.Console::Write({callNode.Arguments[0].GetValueType().Name})");
+
+            return;
+        }
+
+        il.Emit(OpCodes.Ldarg_0);
+        Console.WriteLine(@"ldarg.0");
+
+        foreach (var arg in node.Arguments)
+        {
+            arg.Accept(this, options);
+        }
+
+        Type type = typeBuilder.CreateTypeInfo().AsType();
+        var argumentTypes = node.Arguments.Select(x => x.GetValueType()).ToArray() ?? [];
+        MethodInfo? methodInfo = type.GetMethod(callNode.MethodNode.Name, argumentTypes) ?? throw new InvalidProgramException();
+        il.Emit(OpCodes.Call, methodInfo);
+        Console.WriteLine($"call [{type.FullName}]{type.FullName}::{callNode.MethodNode.Name}({string.Join(", ", node.Arguments.Select(x => x.GetValueType()))})");
     }
 }

@@ -38,8 +38,13 @@ public class PrintVisitor : INodeVisitor
 
     private void VisitReturnStatement(ReturnStatementNode returnStatement)
     {
-        Console.Write("return ");
-        returnStatement.ValueAccessor.Accept(this);
+        Console.Write("return");
+
+        if (returnStatement.ValueAccessor.ValueContainer is not null)
+        {
+            Console.Write(" ");
+            returnStatement.ValueAccessor.Accept(this);
+        }
     }
 
     public void VisitPrintStatement(PrintStatementNode node, NodeVisitOptions? options = null)
@@ -49,7 +54,7 @@ public class PrintVisitor : INodeVisitor
         Console.WriteLine(";");
     }
 
-    public void VisitMethodCall(IMethodNode node, NodeVisitOptions? options = null)
+    public void VisitMethod(IMethodNode node, NodeVisitOptions? options = null)
     {
         Console.Write($"{node.ReturnType.Name} {node.Name}(");
 
@@ -119,13 +124,20 @@ public class PrintVisitor : INodeVisitor
 
     public void VisitLocalVariable(ILocalVariableNode node, NodeVisitOptions? options = null)
     {
+        if (options is not null && !options.IsFirst)
+        {
+            Console.Write($"{node.Type.Name} {node.Name}");
+
+            return;
+        }
+
         LocalVariableNode variable = (node as LocalVariableNode)!;
         Console.Write($"{node.Type.Name} {node.Name} = ");
         variable.ValueAccessor.Accept(this);
     }
 
     public void VisitValueAccessor(IValueAccessorNode node, NodeVisitOptions? options = null) =>
-        node.ValueContainer.Accept(this);
+        node.ValueContainer.Accept(this, new() { IsFirst = false });
 
     public void VisitAssignment(AssignmentNode node, NodeVisitOptions? options = null)
     {
@@ -135,6 +147,13 @@ public class PrintVisitor : INodeVisitor
 
     public void VisitMethodCall(IMethodCallNode node, NodeVisitOptions? options = null)
     {
-        throw new NotImplementedException();
+        Console.Write($"{node.Expression}(");
+
+        foreach (var argument in node.Arguments)
+        {
+            argument.Accept(this, options);
+        }
+
+        Console.Write(")");
     }
 }

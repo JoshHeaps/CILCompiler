@@ -5,7 +5,7 @@ namespace CILCompiler.ASTNodes.Implementations.Expressions;
 
 public record ParameterNode(Type Type, string Name) : IParameterNode
 {
-    public IValueAccessorNode ValueAccessor { get => new ValueAccessorNode(new LiteralNode(Activator.CreateInstance(Type)!)); }
+    public IValueAccessorNode ValueAccessor { get => Type == typeof(string) ? new ValueAccessorNode(new LiteralNode("")) : new ValueAccessorNode(new LiteralNode(Activator.CreateInstance(Type)!)); }
     public string Expression { get => $"{Type.Name} {Name}"; }
 
     public T Accept<T>(INodeVisitor<T> visitor) =>

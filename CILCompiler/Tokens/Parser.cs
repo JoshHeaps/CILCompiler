@@ -10,8 +10,10 @@ public class Parser
 {
     private readonly Lexer _lexer;
     private Token _currentToken;
+    private string _name;
     private List<IFieldNode> _fields;
     private List<IMethodNode> _methods;
+    private List<MethodCallNode> _methodCallPlaceholders;
 
     public Parser(Lexer lexer)
     {
@@ -19,6 +21,7 @@ public class Parser
         _currentToken = _lexer.Advance();
         _fields = [];
         _methods = [];
+        _methodCallPlaceholders = [];
     }
 
     private void Eat(TokenType type)
@@ -32,13 +35,15 @@ public class Parser
     public ObjectNode Parse()
     {
         Eat(TokenType.Keyword); // class
-        var name = ParseIdentifier(); // class name
+        _name = ParseIdentifier(); // class name
 
         ParseFields();
 
         ParseMethods();
 
-        return new(name, _fields, _methods);
+        FixMethodCalls();
+
+        return new(_name, _fields, _methods);
     }
 
     private void ParseFields()
@@ -80,7 +85,8 @@ public class Parser
 
         while (_currentToken.Type != TokenType.EndOfFile)
         {
-            Eat(TokenType.Any);
+            if (_currentToken.Type != TokenType.Type)
+                Eat(TokenType.Any);
 
             if (_currentToken.Value == "{")
                 depth++;
@@ -90,18 +96,33 @@ public class Parser
             bool currentTokenCanBeField = _currentToken.Type == TokenType.Type && depth == 0;
 
             if (!currentTokenCanBeField)
+            {
+                Eat(TokenType.Any);
+
                 continue;
+            }
 
             bool isCurrentTokenMethod = PeekNextToken().Type == TokenType.Parenthesis;
 
             if (isCurrentTokenMethod)
                 _methods.Add(ParseMethod());
+            else
+                Eat(TokenType.Any);
         }
 
         _lexer.Position = 0;
         _currentToken = _lexer.Advance();
         Eat(TokenType.Keyword);
         Eat(TokenType.Identifier);
+    }
+
+    private void FixMethodCalls()
+    {
+        for (int i = 0; i < _methodCallPlaceholders.Count; i++)
+        {
+            var method = _methods.First(x => x.Name == _methodCallPlaceholders[i].MethodNode.Name);
+            _methodCallPlaceholders[i].MethodNode = method;
+        }
     }
 
     private FieldNode ParseField()
@@ -192,16 +213,45 @@ public class Parser
         return body;
     }
 
-    private MethodCallNode ParseMethodCall(List<IParameterNode> parameters, List<ILocalVariableNode> locals)
+    private MethodCallNode ParseMethodCall(List<IParameterNode> parameters, List<ILocalVariableNode> locals, string? objectName = null, string? methodName = null)
     {
+        var tokens = PeekUntil(TokenType.Parenthesis);
+        objectName ??= _name;
 
+        if (tokens.Any(x => x.Type == TokenType.Dot))
+        {
+            objectName = ParseIdentifier();
+            Eat(TokenType.Dot);
+        }
 
-        throw new NotImplementedException();
+        methodName ??= ParseIdentifier();
+        Eat(TokenType.Parenthesis);
+        List<IValueAccessorNode> valueAccessors = [];
+
+        while(_currentToken.Type == TokenType.Identifier)
+        {
+            valueAccessors.Add(new ValueAccessorNode(ParseExpression(null, parameters, locals)));
+
+            if (_currentToken.Type == TokenType.Comma)
+                Eat(TokenType.Comma);
+        }
+
+        Eat(TokenType.Parenthesis);
+
+        var dummyMethod = new MethodNode(methodName, typeof(object), [], []);
+        var result = new MethodCallNode(dummyMethod, valueAccessors);
+
+        _methodCallPlaceholders.Add(result);
+
+        return result;
     }
 
     private ReturnStatementNode ParseReturnStatement(Type type, List<IParameterNode> parameters, List<ILocalVariableNode> locals)
     {
         Eat(TokenType.Return);
+
+        if (_currentToken.Type == TokenType.Semicolon)
+            return new(new ValueAccessorNode(null));
 
         return new(new ValueAccessorNode(ParseExpression(type, parameters, locals)));
     }
@@ -210,9 +260,9 @@ public class Parser
     {
         if (PeekUntil(TokenType.Semicolon).Any(x => x.Type == TokenType.Operator))
             return ParseBinaryOperation(type, parameters, locals);
-
-        if (_currentToken.Type == TokenType.QuotationMark && type == typeof(string))
-            return ParseValue(type, parameters, locals);
+        
+        if (_currentToken.Type == TokenType.QuotationMark)
+            return ParseValue(typeof(string), parameters, locals);
 
         IExpressionNode? expression = null;
         type ??= typeof(object);
@@ -225,6 +275,14 @@ public class Parser
             expression = locals.First(x => x.Name == identifier);
         else if (_fields is not null && _fields.Any(x => x.Name == identifier))
             expression = _fields.First(x => x.Name == identifier);
+        else if (_currentToken.Type == TokenType.Parenthesis
+              || (_currentToken.Type == TokenType.Dot && NextTypesAre(TokenType.Identifier, TokenType.Parenthesis)))
+        {
+            if (_currentToken.Type == TokenType.Parenthesis)
+                return ParseMethodCall(parameters!, locals!, methodName: identifier);
+
+            return ParseMethodCall(parameters!, locals!, objectName: identifier);
+        }
         else
             expression = new LiteralNode(typeConversions[type](identifier));
 
@@ -248,6 +306,15 @@ public class Parser
 
     private IExpressionNode ParseValue(Type? type = null, List<IParameterNode>? parameters = null, List<ILocalVariableNode>? locals = null)
     {
+        if (_currentToken.Type == TokenType.Identifier
+         && (PeekNextToken().Type == TokenType.Parenthesis || NextTypesAre(TokenType.Dot, TokenType.Identifier, TokenType.Parenthesis)))
+        {
+            ArgumentNullException.ThrowIfNull(parameters);
+            ArgumentNullException.ThrowIfNull(locals);
+
+            return ParseMethodCall(parameters, locals);
+        }
+        
         type ??= typeof(object);
 
         IExpressionNode? expression = null;
@@ -322,7 +389,7 @@ public class Parser
 
         values.Add(ParseValue(type, parameters, locals));
 
-        while (_currentToken.Type != TokenType.Semicolon)
+        while (_currentToken.Type == TokenType.Operator)
         {
             operators.Add(ParseOperator());
             values.Add(ParseValue(type, parameters, locals));

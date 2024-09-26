@@ -5,7 +5,6 @@ public interface ILocalVariableNode : IExpressionNode
     public Type Type { get; }
     public string Name { get; }
     public object Value { get; }
-    public int DeclaredPosition { get; }
 }
 
 /// <summary>

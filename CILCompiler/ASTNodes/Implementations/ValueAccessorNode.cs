@@ -25,8 +25,11 @@ public record ValueAccessorNode : IValueAccessorNode
         {
             AssignmentNode assignmentNode => assignmentNode.Type,
             BinaryExpressionNode binaryExpression => binaryExpression.Left is not null ? new ValueAccessorNode(binaryExpression.Left).GetValueType() : binaryExpression.Right is not null ? new ValueAccessorNode(binaryExpression.Right).GetValueType() : throw new InvalidProgramException(),
-            LiteralNode literalNode => literalNode.Value.GetType(),
-            FieldNode fieldNode => fieldNode.Value.GetType(),
+            LiteralNode literal => literal.Value.GetType(),
+            FieldNode field => field.Value.GetType(),
+            LocalVariableNode localVariable => localVariable.Value.GetType(),
+            ParameterNode parameter => parameter.ValueAccessor.GetValueType(),
+            MethodCallNode methodCall => methodCall.MethodNode.ReturnType,
             _ => throw new NotImplementedException(),
         };
     }
@@ -35,9 +38,12 @@ public record ValueAccessorNode : IValueAccessorNode
     {
         return ValueContainer switch
         {
-            AssignmentNode assignmentNode => GetValueFromAssignment(assignmentNode),
+            AssignmentNode assignment => GetValueFromAssignment(assignment),
             BinaryExpressionNode binaryExpression => GetValueFromBinaryExpression(binaryExpression),
-            LiteralNode literalNode => literalNode.Value,
+            LiteralNode literal => literal.Value,
+            FieldNode field => field.Value,
+            LocalVariableNode localVariable => localVariable.Value,
+            ParameterNode parameter => parameter.ValueAccessor.GetValue(),
             _ => throw new NotImplementedException(),
         };
     }
@@ -55,13 +61,8 @@ public record ValueAccessorNode : IValueAccessorNode
         IExpressionNode left = binaryExpression.Left;
         IExpressionNode right = binaryExpression.Right;
 
-        object? leftValue = null;
-        object? rightValue = null;
-
-        if (left is LiteralNode)
-            leftValue = (left as LiteralNode)!.Value;
-        if (right is LiteralNode)
-            rightValue = (right as LiteralNode)!.Value;
+        object? leftValue = new ValueAccessorNode(left).GetValue();
+        object? rightValue = new ValueAccessorNode(right).GetValue();
 
         if (leftValue is null || rightValue is null)
             throw new InvalidProgramException();

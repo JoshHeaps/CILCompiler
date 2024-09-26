@@ -6,17 +6,17 @@ namespace CILCompiler.ASTVisitors.Interfaces;
 
 public interface INodeVisitor<T>
 {
-    public T VisitBinaryExpression(BinaryExpressionNode node);
-    public T VisitExpression(IExpressionNode node);
-    public T VisitPrintStatement(PrintStatementNode node);
-    public T VisitMethodCall(IMethodNode node);
-    public T VisitObject(IObjectNode node);
-    public T VisitField(IFieldNode node);
-    public T VisitStatement(StatementNode node);
-    public T VisitParameter(IParameterNode node);
-    public T VisitLocalVariable(ILocalVariableNode node);
-    public T VisitValueAccessor(IValueAccessorNode node);
-    public T VisitAssignment(AssignmentNode node);
+    public T VisitBinaryExpression(BinaryExpressionNode node, NodeVisitOptions? options = null);
+    public T VisitExpression(IExpressionNode node, NodeVisitOptions? options = null);
+    public T VisitPrintStatement(PrintStatementNode node, NodeVisitOptions? options = null);
+    public T VisitMethod(IMethodNode node, NodeVisitOptions? options = null);
+    public T VisitObject(IObjectNode node, NodeVisitOptions? options = null);
+    public T VisitField(IFieldNode node, NodeVisitOptions? options = null);
+    public T VisitStatement(StatementNode node, NodeVisitOptions? options = null);
+    public T VisitParameter(IParameterNode node, NodeVisitOptions? options = null);
+    public T VisitLocalVariable(ILocalVariableNode node, NodeVisitOptions? options = null);
+    public T VisitValueAccessor(IValueAccessorNode node, NodeVisitOptions? options = null);
+    public T VisitAssignment(AssignmentNode node, NodeVisitOptions? options = null);
     public T VisitMethodCall(IMethodCallNode node, NodeVisitOptions? options = null);
 }
 
@@ -25,7 +25,7 @@ public interface INodeVisitor
     public void VisitBinaryExpression(BinaryExpressionNode node, NodeVisitOptions? options = null);
     public void VisitExpression(IExpressionNode node, NodeVisitOptions? options = null);
     public void VisitPrintStatement(PrintStatementNode node, NodeVisitOptions? options = null);
-    public void VisitMethodCall(IMethodNode node, NodeVisitOptions? options = null);
+    public void VisitMethod(IMethodNode node, NodeVisitOptions? options = null);
     public void VisitObject(IObjectNode node, NodeVisitOptions? options = null);
     public void VisitField(IFieldNode node, NodeVisitOptions? options = null);
     public void VisitStatement(StatementNode node, NodeVisitOptions? options = null);

@@ -6,16 +6,16 @@ namespace CILCompiler.ASTVisitors.Implementations;
 
 public class StringBuilderVisitor : INodeVisitor<string>
 {
-    public string VisitBinaryExpression(BinaryExpressionNode node) =>
+    public string VisitBinaryExpression(BinaryExpressionNode node, NodeVisitOptions? options = null) =>
         $"({node.Left.Accept(this)} {node.Operator} {node.Right.Accept(this)})";
 
-    public string VisitExpression(IExpressionNode node) =>
+    public string VisitExpression(IExpressionNode node, NodeVisitOptions? options = null) =>
         (node as LiteralNode)?.Value?.ToString() ?? "";
 
-    public string VisitPrintStatement(PrintStatementNode node) =>
+    public string VisitPrintStatement(PrintStatementNode node, NodeVisitOptions? options = null) =>
         $"print {node.Expression.Accept(this)};";
 
-    public string VisitMethodCall(IMethodNode node)
+    public string VisitMethod(IMethodNode node, NodeVisitOptions? options = null)
     {
         string result = $"{node.Name}(";
 
@@ -30,37 +30,37 @@ public class StringBuilderVisitor : INodeVisitor<string>
         return result + ");";
     }
 
-    public string VisitObject(IObjectNode node)
+    public string VisitObject(IObjectNode node, NodeVisitOptions? options = null)
     {
         throw new NotImplementedException();
     }
 
-    public string VisitField(IFieldNode node)
+    public string VisitField(IFieldNode node, NodeVisitOptions? options = null)
     {
         throw new NotImplementedException();
     }
 
-    public string VisitStatement(StatementNode node)
+    public string VisitStatement(StatementNode node, NodeVisitOptions? options = null)
     {
         throw new NotImplementedException();
     }
 
-    public string VisitParameter(IParameterNode node)
+    public string VisitParameter(IParameterNode node, NodeVisitOptions? options = null)
     {
         throw new NotImplementedException();
     }
 
-    public string VisitLocalVariable(ILocalVariableNode node)
+    public string VisitLocalVariable(ILocalVariableNode node, NodeVisitOptions? options = null)
     {
         throw new NotImplementedException();
     }
 
-    public string VisitValueAccessor(IValueAccessorNode node)
+    public string VisitValueAccessor(IValueAccessorNode node, NodeVisitOptions? options = null)
     {
         throw new NotImplementedException();
     }
 
-    public string VisitAssignment(AssignmentNode node)
+    public string VisitAssignment(AssignmentNode node, NodeVisitOptions? options = null)
     {
         throw new NotImplementedException();
     }
