@@ -328,10 +328,10 @@ public class Parser
             values.Add(ParseValue(type, parameters, locals));
         }
 
-        return PrioritizeOperations(values, operators, type, parameters, locals);
+        return PrioritizeOperations(values, operators);
     }
 
-    private IExpressionNode PrioritizeOperations(List<IExpressionNode> values, List<string> operators, Type? type = null, List<IParameterNode>? parameters = null, List<ILocalVariableNode>? locals = null)
+    private IExpressionNode PrioritizeOperations(List<IExpressionNode> values, List<string> operators)
     {
         if (values.Count == 2)
             return new BinaryExpressionNode(values[0], values[1], operators[0]);
@@ -346,9 +346,9 @@ public class Parser
         var rightValues = values[(lowestPriorityIndex + 1)..];
         var rightOperators = operators.TakeLast(operators.Count - leftOperators.Count - 1).ToList();
 
-        IExpressionNode left = PrioritizeOperations(leftValues, leftOperators, type, parameters, locals);
+        IExpressionNode left = PrioritizeOperations(leftValues, leftOperators);
         string Operator = operators[lowestPriorityIndex];
-        IExpressionNode right = PrioritizeOperations(rightValues, rightOperators, type, parameters, locals);
+        IExpressionNode right = PrioritizeOperations(rightValues, rightOperators);
 
         return new BinaryExpressionNode(left, right, Operator);
     }
