@@ -36,9 +36,22 @@ public class ILCreationVisitor : INodeVisitor
         Console.WriteLine();
         Console.WriteLine();
 
+        var methodOptions = DefineMethods(node.Methods);
+
+        foreach ((var method, var option) in methodOptions)
+        {
+            Console.WriteLine($"{typeBuilder.Name}::{method.Name}({string.Join(", ", method.Parameters.Select(x => x.Type.Name))})");
+            method.Accept(this, option);
+            Console.WriteLine();
+            Console.WriteLine();
+        }
+    }
+
+    private List<(IMethodNode node, NodeVisitOptions options)> DefineMethods(List<IMethodNode> methodNodes)
+    {
         List<(IMethodNode node, NodeVisitOptions options)> methodOptions = [];
 
-        foreach (var method in node.Methods)
+        foreach (var method in methodNodes)
         {
             Type[] parameterTypes = method.Parameters.Select(x => x.Type).ToArray();
             var methodBuilder = typeBuilder.DefineMethod(method.Name, MethodAttributes.Public, method.ReturnType, parameterTypes);
@@ -53,13 +66,7 @@ public class ILCreationVisitor : INodeVisitor
             methods.Add(methodBuilder);
         }
 
-        foreach ((var method, var option) in methodOptions)
-        {
-            Console.WriteLine($"{typeBuilder.Name}::{method.Name}({string.Join(", ", method.Parameters.Select(x => x.Type.Name))})");
-            method.Accept(this, option);
-            Console.WriteLine();
-            Console.WriteLine();
-        }
+        return methodOptions;
     }
 
     public void VisitField(IFieldNode node, NodeVisitOptions? options = null)
@@ -225,15 +232,21 @@ public class ILCreationVisitor : INodeVisitor
         var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, []);
         ILGenerator constructorGenerator = constructorBuilder.GetILGenerator();
 
-        // This might be necessary, I'm unsure.
+        Console.WriteLine();
+        Console.WriteLine();
+        Console.WriteLine($"{typeBuilder.Name}::.cctor");
+
         var constructorInfo = typeof(object).GetConstructor([]);
         constructorGenerator.Emit(OpCodes.Ldarg_0);
+        Console.WriteLine("ldarg_0");
         constructorGenerator.Emit(OpCodes.Call, constructorInfo!);
+        Console.WriteLine($"call {constructorInfo!.Name}");
 
         foreach (var field in node.Fields)
         {
             fields.Add(typeBuilder.DefineField(field.Name, field.Type, FieldAttributes.Private));
             constructorGenerator.Emit(OpCodes.Ldarg_0);
+            Console.WriteLine("ldarg_0");
 
             if (AddToStackDelegates.TryGetValue(field.Type, out Action<ILGenerator, object>? value))
                 value(constructorGenerator, field.Value);
@@ -244,9 +257,11 @@ public class ILCreationVisitor : INodeVisitor
             }
 
             constructorGenerator.Emit(OpCodes.Stfld, fields[^1]);
+            Console.WriteLine($"stfld {typeBuilder.Name}::{fields[^1].Name}");
         }
 
         constructorGenerator.Emit(OpCodes.Ret);
+        Console.WriteLine("ret");
     }
 
     private Dictionary<Type, Action<ILGenerator, object>> AddToStackDelegates = new()
