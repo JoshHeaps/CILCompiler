@@ -124,7 +124,7 @@ public class Parser
                 continue;
 
             var method = _methods.First(x => x.Name == _methodCallPlaceholders[i].MethodNode.Name);
-            _methodCallPlaceholders[i].MethodNode = method;
+            _methodCallPlaceholders[i] = _methodCallPlaceholders[i] with { MethodNode = method };
         }
     }
 
