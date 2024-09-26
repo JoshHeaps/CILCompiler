@@ -120,6 +120,9 @@ public class Parser
     {
         for (int i = 0; i < _methodCallPlaceholders.Count; i++)
         {
+            if (_methodCallPlaceholders[i].MethodNode.Name == "Print")
+                continue;
+
             var method = _methods.First(x => x.Name == _methodCallPlaceholders[i].MethodNode.Name);
             _methodCallPlaceholders[i].MethodNode = method;
         }
@@ -228,7 +231,7 @@ public class Parser
         Eat(TokenType.Parenthesis);
         List<IValueAccessorNode> valueAccessors = [];
 
-        while(_currentToken.Type == TokenType.Identifier)
+        while(_currentToken.Type == TokenType.Identifier || _currentToken.Type == TokenType.QuotationMark)
         {
             valueAccessors.Add(new ValueAccessorNode(ParseExpression(null, parameters, locals)));
 

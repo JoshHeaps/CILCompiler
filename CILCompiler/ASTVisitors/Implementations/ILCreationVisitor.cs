@@ -20,6 +20,7 @@ public class ILCreationVisitor : INodeVisitor
     private TypeBuilder? _tb;
     private TypeBuilder typeBuilder { get => _tb ?? throw new Exception("Type Builder is not defined"); set => _tb = value; }
     private List<FieldBuilder> fields = [];
+    private List<MethodBuilder> methods = [];
     private List<(ILocalVariableNode node, LocalBuilder builder)> locals = [];
 
     public void VisitObject(IObjectNode node, NodeVisitOptions? options = null)
@@ -35,11 +36,30 @@ public class ILCreationVisitor : INodeVisitor
         Console.WriteLine();
         Console.WriteLine();
 
-        foreach (var method in node.Methods)
-            method.Accept(this);
+        List<(IMethodNode node, NodeVisitOptions options)> methodOptions = [];
 
-        Console.WriteLine();
-        Console.WriteLine();
+        foreach (var method in node.Methods)
+        {
+            Type[] parameterTypes = method.Parameters.Select(x => x.Type).ToArray();
+            var methodBuilder = typeBuilder.DefineMethod(method.Name, MethodAttributes.Public, method.ReturnType, parameterTypes);
+            List<ParameterBuilder> parameters = [];
+
+            for (int i = 0; i < parameterTypes.Length; i++)
+                parameters.Add(methodBuilder.DefineParameter(i + 1, ParameterAttributes.In, method.Parameters[i].Name));
+
+            var il = methodBuilder.GetILGenerator();
+
+            methodOptions.Add((method, new() { IL = il, Parameters = parameters, Method = methodBuilder }));
+            methods.Add(methodBuilder);
+        }
+
+        foreach ((var method, var option) in methodOptions)
+        {
+            Console.WriteLine($"{typeBuilder.Name}::{method.Name}({string.Join(", ", method.Parameters.Select(x => x.Type.Name))})");
+            method.Accept(this, option);
+            Console.WriteLine();
+            Console.WriteLine();
+        }
     }
 
     public void VisitField(IFieldNode node, NodeVisitOptions? options = null)
@@ -59,18 +79,10 @@ public class ILCreationVisitor : INodeVisitor
     public void VisitMethod(IMethodNode node, NodeVisitOptions? options = null)
     {
         locals = [];
-        Type[] parameterTypes = node.Parameters.Select(x => x.Type).ToArray();
-        var methodBuilder = typeBuilder.DefineMethod(node.Name, MethodAttributes.Public, node.ReturnType, parameterTypes);
-        List<ParameterBuilder> parameters = [];
-
-        for (int i = 0; i < parameterTypes.Length; i++)
-            parameters.Add(methodBuilder.DefineParameter(i + 1, ParameterAttributes.In, node.Parameters[i].Name));
-
-        var il = methodBuilder.GetILGenerator();
 
         foreach (var expression in node.Body)
         {
-            expression.Accept(this, new() { IL = il, Parameters = parameters, Method = methodBuilder });
+            expression.Accept(this, options);
         }
     }
 
@@ -310,10 +322,7 @@ public class ILCreationVisitor : INodeVisitor
             arg.Accept(this, options);
         }
 
-        Type type = typeBuilder.CreateTypeInfo().AsType();
-        var argumentTypes = node.Arguments.Select(x => x.GetValueType()).ToArray() ?? [];
-        MethodInfo? methodInfo = type.GetMethod(callNode.MethodNode.Name, argumentTypes) ?? throw new InvalidProgramException();
-        il.Emit(OpCodes.Call, methodInfo);
-        Console.WriteLine($"call [{type.FullName}]{type.FullName}::{callNode.MethodNode.Name}({string.Join(", ", node.Arguments.Select(x => x.GetValueType()))})");
+        il.Emit(OpCodes.Call, methods.First(x => x.Name == callNode.MethodNode.Name));
+        Console.WriteLine($"call instance {callNode.MethodNode.ReturnType.Name.ToLower()} {typeBuilder.Name}::{callNode.MethodNode.Name}({string.Join(", ", node.Arguments.Select(x => x.GetValueType()))})");
     }
 }
