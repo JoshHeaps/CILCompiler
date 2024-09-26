@@ -232,8 +232,6 @@ public class ILCreationVisitor : INodeVisitor
         var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, []);
         ILGenerator constructorGenerator = constructorBuilder.GetILGenerator();
 
-        Console.WriteLine();
-        Console.WriteLine();
         Console.WriteLine($"{typeBuilder.Name}::.cctor");
 
         var constructorInfo = typeof(object).GetConstructor([]);

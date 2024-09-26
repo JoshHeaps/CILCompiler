@@ -310,7 +310,7 @@ public class Parser
     private IExpressionNode ParseValue(Type? type = null, List<IParameterNode>? parameters = null, List<ILocalVariableNode>? locals = null)
     {
         if (_currentToken.Type == TokenType.Identifier
-         && (PeekNextToken().Type == TokenType.Parenthesis || NextTypesAre(TokenType.Dot, TokenType.Identifier, TokenType.Parenthesis)))
+         && (PeekNextToken().Value == "(" || NextTypesAre(TokenType.Dot, TokenType.Identifier, TokenType.Parenthesis)))
         {
             ArgumentNullException.ThrowIfNull(parameters);
             ArgumentNullException.ThrowIfNull(locals);
