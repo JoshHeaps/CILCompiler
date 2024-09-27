@@ -102,9 +102,15 @@ public class ILCreationVisitor : INodeVisitor
         node.Left.Accept(this, options);
         node.Right.Accept(this, options);
 
-        if (node.Operator == "+")
+        if (node.Operator == "+" && new ValueAccessorNode(node.Left).GetValueType() == typeof(int))
         {
             il.Emit(OpCodes.Add);
+            Console.WriteLine("add");
+        }
+        else if (node.Operator == "+" && new ValueAccessorNode(node.Left).GetValueType() == typeof(string))
+        {
+            var method = typeof(string).GetMethod("Concat", [typeof(string), typeof(string)])!;
+            il.Emit(OpCodes.Call, method);
             Console.WriteLine("add");
         }
         else if (node.Operator == "-")

@@ -1,6 +1,7 @@
 ﻿using CILCompiler.ASTNodes.Implementations.Expressions;
 using CILCompiler.ASTNodes.Interfaces;
 using CILCompiler.ASTVisitors.Interfaces;
+using System.Numerics;
 
 namespace CILCompiler.ASTNodes.Implementations;
 
@@ -70,14 +71,15 @@ public record ValueAccessorNode : IValueAccessorNode
         if (leftValue.GetType() != rightValue.GetType())
             throw new InvalidProgramException();
 
-        Dictionary<string, Func<object, object, object>> operations = new()
+        Dictionary<(Type, string), Func<object, object, object>> operations = new()
         {
-            { "+", (l, r) => (int)l + (int)r },
-            { "-", (l, r) => (int)l - (int)r },
-            { "*", (l, r) => (int)l * (int)r },
-            { "/", (l, r) => (int)l / (int)r },
+            { (typeof(int), "+"), (l, r) => (int)l + (int)r },
+            { (typeof(int), "-"), (l, r) => (int)l - (int)r },
+            { (typeof(int), "*"), (l, r) => (int)l * (int)r },
+            { (typeof(int), "/"), (l, r) => (int)l / (int)r },
+            { (typeof(string), "+"), (l, r) => (string)l + (string)r },
         };
 
-        return operations[binaryExpression.Operator].Invoke(leftValue, rightValue);
+        return operations[(leftValue.GetType(), binaryExpression.Operator)].Invoke(leftValue, rightValue);
     }
 }
