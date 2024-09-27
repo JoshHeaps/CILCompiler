@@ -44,8 +44,19 @@ public record ValueAccessorNode : IValueAccessorNode
             FieldNode field => field.Value,
             LocalVariableNode localVariable => localVariable.Value,
             ParameterNode parameter => parameter.ValueAccessor.GetValue(),
+            MethodCallNode methodCall => GetDefaultOfMethodType(methodCall),
             _ => throw new NotImplementedException(),
         };
+    }
+
+    private object GetDefaultOfMethodType(MethodCallNode node)
+    {
+        if (node.MethodNode.ReturnType == typeof(string))
+            return "";
+
+        var result = Activator.CreateInstance(node.MethodNode.ReturnType);
+
+        return result!;
     }
 
     private object GetValueFromAssignment(AssignmentNode assignmentNode) =>

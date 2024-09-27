@@ -13,4 +13,5 @@ var generator = new ILCreationVisitor();
 
 var type = generator.CompileObject([obj])[0].CreateType();
 var bar = Activator.CreateInstance(type);
-Console.WriteLine(type.GetMethod("Main")?.Invoke(bar, ["hello ", "world! "]) ?? throw new InvalidProgramException("Project has no suitable entry point"));
+var method = type.GetMethod("Main") ?? throw new InvalidProgramException("Project has no suitable entry point");
+Console.WriteLine(method?.Invoke(bar, []) ?? "");

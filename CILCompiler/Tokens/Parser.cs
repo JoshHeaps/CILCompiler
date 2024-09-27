@@ -13,15 +13,18 @@ public class Parser
     private string _name;
     private List<IFieldNode> _fields;
     private List<IMethodNode> _methods;
-    private List<MethodCallNode> _methodCallPlaceholders;
+    private List<(MethodCallNode node, int fixIndex)> _methodCallPlaceholders;
+    private List<Action<MethodNode>> _fixMethodCallDelegates;
 
     public Parser(Lexer lexer)
     {
+        _name = "";
         _lexer = lexer;
         _currentToken = _lexer.Advance();
         _fields = [];
         _methods = [];
         _methodCallPlaceholders = [];
+        _fixMethodCallDelegates = [];
     }
 
     private void Eat(TokenType type)
@@ -120,11 +123,14 @@ public class Parser
     {
         for (int i = 0; i < _methodCallPlaceholders.Count; i++)
         {
-            if (_methodCallPlaceholders[i].MethodNode.Name == "Print")
+            if (_methodCallPlaceholders[i].node.MethodNode.Name == "Print")
                 continue;
 
-            var method = _methods.First(x => x.Name == _methodCallPlaceholders[i].MethodNode.Name);
-            _methodCallPlaceholders[i] = _methodCallPlaceholders[i] with { MethodNode = method };
+            var method = _methods.First(x => x.Name == _methodCallPlaceholders[i].node.MethodNode.Name);
+            var callNode = _methodCallPlaceholders[i].node;
+            callNode.MethodNode = method;
+            _methodCallPlaceholders[i] = (callNode, _methodCallPlaceholders[i].fixIndex);
+            _fixMethodCallDelegates[_methodCallPlaceholders[i].fixIndex].Invoke((method as MethodNode)!);
         }
     }
 
@@ -244,7 +250,11 @@ public class Parser
         var dummyMethod = new MethodNode(methodName, typeof(object), [], []);
         var result = new MethodCallNode(dummyMethod, valueAccessors);
 
-        _methodCallPlaceholders.Add(result);
+        _methodCallPlaceholders.Add((result, _methodCallPlaceholders.Count));
+        _fixMethodCallDelegates.Add(method =>
+        {
+            result.MethodNode = method;
+        });
 
         return result;
     }

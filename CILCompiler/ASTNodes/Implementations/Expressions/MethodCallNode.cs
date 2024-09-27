@@ -3,11 +3,12 @@ using CILCompiler.ASTVisitors.Interfaces;
 
 namespace CILCompiler.ASTNodes.Implementations.Expressions;
 
-public record MethodCallNode(IMethodNode MethodNode, List<IValueAccessorNode> Arguments) : IMethodCallNode
+// This needs to be a class so we can update the reference for binary expressions.
+public class MethodCallNode(IMethodNode methodNode, List<IValueAccessorNode> arguments) : IMethodCallNode
 {
     public string Expression => $"{MethodNode.Name}";
-    //public IMethodNode MethodNode { get => methodNode; set => methodNode = value; }
-    //public List<IValueAccessorNode> Arguments { get => arguments; }
+    public IMethodNode MethodNode { get => methodNode; set => methodNode = value; }
+    public List<IValueAccessorNode> Arguments { get => arguments; }
 
     public T Accept<T>(INodeVisitor<T> visitor) =>
         visitor.VisitMethodCall(this);
