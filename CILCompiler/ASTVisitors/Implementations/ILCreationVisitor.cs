@@ -111,7 +111,7 @@ public class ILCreationVisitor : INodeVisitor
         {
             var method = typeof(string).GetMethod("Concat", [typeof(string), typeof(string)])!;
             il.Emit(OpCodes.Call, method);
-            Console.WriteLine("add");
+            Console.WriteLine("call string [System.Runtime]System.String::Concat(string, string)");
         }
         else if (node.Operator == "-")
         {

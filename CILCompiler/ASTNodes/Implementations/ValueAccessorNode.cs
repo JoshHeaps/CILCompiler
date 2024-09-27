@@ -1,7 +1,6 @@
 ﻿using CILCompiler.ASTNodes.Implementations.Expressions;
 using CILCompiler.ASTNodes.Interfaces;
 using CILCompiler.ASTVisitors.Interfaces;
-using System.Numerics;
 
 namespace CILCompiler.ASTNodes.Implementations;
 
