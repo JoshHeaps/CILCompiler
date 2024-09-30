@@ -161,9 +161,6 @@ public class ILCreationVisitor : INodeVisitor
 
         LocalVariableNode variable = (node as LocalVariableNode)!;
 
-        if (node.Name == "input")
-            ;
-
         if (locals.Any(x => x.node.Name == variable.Name))
         {
             var local = locals.First(x => x.node.Name == variable.Name);

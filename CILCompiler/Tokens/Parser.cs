@@ -346,9 +346,6 @@ public class Parser
 
         methodName ??= ParseIdentifier();
 
-        if (methodName == "RandomInt")
-            ;
-
         Eat(TokenType.Parenthesis);
         List<IValueAccessorNode> valueAccessors = [];
 
@@ -482,9 +479,6 @@ public class Parser
         int declaredPosition = _lexer.Position;
         var type = ParseType();
         var name = ParseIdentifier();
-
-        if (name == "input")
-            ;
 
         Eat(TokenType.Equals);
 
