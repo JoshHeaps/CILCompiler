@@ -124,9 +124,7 @@ public class Parser
     {
         for (int i = 0; i < _methodCallPlaceholders.Count; i++)
         {
-            if (_methodCallPlaceholders[i].node.MethodNode.Name == "Print")
-                continue;
-            if (_methodCallPlaceholders[i].node.MethodNode.Name == "PrintLine")
+            if (Definitions.DefaultMethods.ContainsKey(_methodCallPlaceholders[i].node.MethodNode.Name))
                 continue;
 
             var method = _methods.First(x => x.Name == _methodCallPlaceholders[i].node.MethodNode.Name);

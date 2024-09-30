@@ -4,6 +4,7 @@ using CILCompiler.ASTNodes.Implementations.FlowControllers;
 using CILCompiler.ASTNodes.Interfaces;
 using CILCompiler.ASTVisitors.Interfaces;
 using CILCompiler.Extensions;
+using CILCompiler.Utilities;
 using System.Reflection;
 using System.Reflection.Emit;
 
@@ -330,19 +331,9 @@ public class ILCreationVisitor : INodeVisitor
 
         var callNode = node as MethodCallNode ?? throw new NullReferenceException();
 
-        if (callNode.MethodNode.Name == "Print")
+        if (Definitions.DefaultMethods.TryGetValue(callNode.MethodNode.Name, out Action<ILGenerator, MethodCallNode, INodeVisitor, NodeVisitOptions>? value))
         {
-            callNode.Arguments[0].Accept(this, options);
-            il.Emit(OpCodes.Call, typeof(Console).GetMethod("Write", [callNode.Arguments[0].GetValueType()])!);
-            Console.WriteLine($"call void [System.Console]System.Console::Write({callNode.Arguments[0].GetValueType().Name})");
-
-            return;
-        }
-        else if (callNode.MethodNode.Name == "PrintLine")
-        {
-            callNode.Arguments[0].Accept(this, options);
-            il.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", [callNode.Arguments[0].GetValueType()])!);
-            Console.WriteLine($"call void [System.Console]System.Console::WriteLine({callNode.Arguments[0].GetValueType().Name})");
+            value.Invoke(il, callNode, this, options);
 
             return;
         }
