@@ -130,6 +130,11 @@ public class ILCreationVisitor : INodeVisitor
             il.Emit(OpCodes.Div);
             Console.WriteLine("div");
         }
+        else if (node.Operator == "%")
+        {
+            il.Emit(OpCodes.Rem);
+            Console.WriteLine("rem");
+        }
     }
 
     public void VisitExpression(IExpressionNode node, NodeVisitOptions? options = null)

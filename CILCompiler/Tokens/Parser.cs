@@ -514,12 +514,12 @@ public class Parser
         List<IExpressionNode> values = [];
         List<string> operators = [];
 
-        values.Add(ParseValue(type, parameters, locals));
-
-        if (int.TryParse(new ValueAccessorNode(values[0]).GetValue().ToString(), out _))
+        if (int.TryParse(_currentToken.Value, out _))
         {
             type = typeof(int);
         }
+
+        values.Add(ParseValue(type, parameters, locals));
 
         while (_currentToken.Type == TokenType.Operator)
         {

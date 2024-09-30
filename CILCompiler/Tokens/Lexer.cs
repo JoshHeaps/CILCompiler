@@ -36,6 +36,7 @@ public class Lexer
         { '-', new (TokenType.Operator, "-") },
         { '*', new (TokenType.Operator, "*") },
         { '/', new (TokenType.Operator, "/") },
+        { '%', new (TokenType.Operator, "%") },
         { '(', new (TokenType.Parenthesis, "(") },
         { ')', new (TokenType.Parenthesis, ")") },
         { '"', new (TokenType.QuotationMark, "\"") },

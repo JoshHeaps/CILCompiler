@@ -87,6 +87,7 @@ public record ValueAccessorNode : IValueAccessorNode
             { (typeof(int), "-"), (l, r) => (int)l - (int)r },
             { (typeof(int), "*"), (l, r) => (int)l * (int)r },
             { (typeof(int), "/"), (l, r) => (int)l / (int)r },
+            { (typeof(int), "%"), (l, r) => (int)l % (int)r },
             { (typeof(string), "+"), (l, r) => (string)l + (string)r },
         };
 
