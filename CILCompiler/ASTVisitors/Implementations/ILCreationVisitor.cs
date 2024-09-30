@@ -44,7 +44,6 @@ public class ILCreationVisitor : INodeVisitor
         {
             Console.WriteLine($"{typeBuilder.Name}::{method.Name}({string.Join(", ", method.Parameters.Select(x => x.Type.Name))})");
             method.Accept(this, option);
-            Console.WriteLine(option.IL.ILOffset);
             Console.WriteLine();
             Console.WriteLine();
         }
