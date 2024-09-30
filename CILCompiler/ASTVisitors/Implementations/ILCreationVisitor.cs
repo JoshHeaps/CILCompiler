@@ -368,17 +368,24 @@ public class ILCreationVisitor : INodeVisitor
         node.Condition.Left.Accept(this, options);
         node.Condition.Right.Accept(this, options);
         il.Emit(ComparisonActions[node.Condition.ComparisonOperator], elseLabel);
+        Console.WriteLine($"{ComparisonActions[node.Condition.ComparisonOperator]} ELSE_LABEL");
+        Console.WriteLine();
 
         foreach (var expression in node.Body)
             expression.Accept(this, options);
 
         il.Emit(OpCodes.Br_S, endIfLabel);
+        Console.WriteLine("br.s END_IF_LABEL");
 
+        Console.WriteLine();
         il.MarkLabel(elseLabel);
+        Console.WriteLine("ELSE_LABEL:");
 
         foreach (var expression in node.ElseBody)
             expression.Accept(this, options);
 
+        Console.WriteLine();
         il.MarkLabel(endIfLabel);
+        Console.WriteLine("END_IF_LABEL:");
     }
 }
