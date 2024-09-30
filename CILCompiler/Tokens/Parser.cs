@@ -303,7 +303,7 @@ public class Parser
 
     private PredicateNode ParsePredicate(Type type, List<IParameterNode> parameters, List<ILocalVariableNode> locals)
     {
-        var left = ParseExpression(type, parameters, locals);
+        var left = ParseExpression(null, parameters, locals);
 
         string Operator;
 
@@ -328,7 +328,7 @@ public class Parser
             }
         }
 
-        var right = ParseExpression(type, parameters, locals);
+        var right = ParseExpression(null, parameters, locals);
 
         return new(left, right, Operator);
     }
@@ -517,6 +517,11 @@ public class Parser
         List<string> operators = [];
 
         values.Add(ParseValue(type, parameters, locals));
+
+        if (int.TryParse(new ValueAccessorNode(values[0]).GetValue().ToString(), out _))
+        {
+            type = typeof(int);
+        }
 
         while (_currentToken.Type == TokenType.Operator)
         {

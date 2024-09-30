@@ -124,6 +124,11 @@ public class ILCreationVisitor : INodeVisitor
             il.Emit(OpCodes.Mul);
             Console.WriteLine("mul");
         }
+        else if (node.Operator == "/")
+        {
+            il.Emit(OpCodes.Div);
+            Console.WriteLine("div");
+        }
     }
 
     public void VisitExpression(IExpressionNode node, NodeVisitOptions? options = null)
