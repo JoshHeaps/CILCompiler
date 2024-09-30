@@ -257,7 +257,8 @@ public class Parser
             if (body.Count > 0 && body[^1] is ILocalVariableNode local)
                 locals.Add(local);
 
-            Eat(TokenType.Semicolon);
+            if (body[^1] is not IFlowControllerNode)
+                Eat(TokenType.Semicolon);
         }
 
         Eat(TokenType.Brace);
@@ -291,7 +292,8 @@ public class Parser
             if (body.Count > 0 && body[^1] is ILocalVariableNode local)
                 locals.Add(local);
 
-            Eat(TokenType.Semicolon);
+            if (elseBody[^1] is not IFlowControllerNode)
+                Eat(TokenType.Semicolon);
         }
 
         Eat(TokenType.Brace);
@@ -515,15 +517,17 @@ public class Parser
         List<string> operators = [];
 
         if (int.TryParse(_currentToken.Value, out _))
-        {
             type = typeof(int);
-        }
 
         values.Add(ParseValue(type, parameters, locals));
 
         while (_currentToken.Type == TokenType.Operator)
         {
             operators.Add(ParseOperator());
+
+            if (int.TryParse(_currentToken.Value, out _))
+                type = typeof(int);
+
             values.Add(ParseValue(type, parameters, locals));
         }
 

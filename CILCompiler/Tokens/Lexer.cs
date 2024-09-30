@@ -73,9 +73,21 @@ public class Lexer
             return new(TokenType.Identifier, value);
         }
 
-        if (char.IsDigit(CurrentChar))
+        if (char.IsDigit(CurrentChar) || CurrentChar == '-')
         {
-            var value = GetValue(char.IsDigit);
+            var value = string.Empty;
+
+            if (CurrentChar == '-')
+            {
+                value += "-";
+
+                NextChar();
+
+                if (!char.IsDigit(CurrentChar))
+                    return SymbolTokens['-'];
+            }
+
+            value += GetValue(char.IsDigit);
 
             return new(TokenType.Identifier, value);
         }
