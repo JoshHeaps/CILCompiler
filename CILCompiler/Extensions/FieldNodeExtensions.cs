@@ -14,5 +14,5 @@ public static class FieldNodeExtensions
     }
 
     public static IFieldNode GetGenericField<T>(this ITypedFieldNode<T> field) where T : class =>
-        new FieldNode(field.Name, field.ValueContainer);
+        new FieldNode(typeof(T), field.Name, field.ValueContainer);
 }

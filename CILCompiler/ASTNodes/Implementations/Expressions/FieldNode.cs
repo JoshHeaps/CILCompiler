@@ -3,10 +3,8 @@ using CILCompiler.ASTVisitors.Interfaces;
 
 namespace CILCompiler.ASTNodes.Implementations.Expressions;
 
-public record FieldNode(string Name, IExpressionNode ValueContainer) : IFieldNode
+public record FieldNode(Type Type, string Name, IExpressionNode ValueContainer) : IFieldNode
 {
-    public Type Type { get => Value.GetType(); }
-
     public string Expression { get => $"{Type.Name} {Name} {Value}"; }
 
     public object Value { get => new ValueAccessorNode(ValueContainer).GetValue(); }

@@ -143,7 +143,7 @@ public class Parser
 
         var expression = ParseExpression(type);
 
-        return new(name, expression);
+        return new(type, name, expression);
     }
 
     private Type ParseType()
@@ -345,6 +345,10 @@ public class Parser
         }
 
         methodName ??= ParseIdentifier();
+
+        if (methodName == "RandomInt")
+            ;
+
         Eat(TokenType.Parenthesis);
         List<IValueAccessorNode> valueAccessors = [];
 
@@ -382,7 +386,7 @@ public class Parser
 
     private IExpressionNode ParseExpression(Type? type = null, List<IParameterNode>? parameters = null, List<ILocalVariableNode>? locals = null)
     {
-        if (PeekUntil(TokenType.Semicolon).Any(x => x.Type == TokenType.Operator))
+        if (PeekUntil(TokenType.Semicolon, TokenType.Comma, TokenType.Brace).Any(x => x.Type == TokenType.Operator) && !PeekUntil(TokenType.Semicolon, TokenType.Comma, TokenType.Brace).Any(x => x.Value == "("))
             return ParseBinaryOperation(type, parameters, locals);
         
         if (_currentToken.Type == TokenType.QuotationMark)
@@ -478,6 +482,10 @@ public class Parser
         int declaredPosition = _lexer.Position;
         var type = ParseType();
         var name = ParseIdentifier();
+
+        if (name == "input")
+            ;
+
         Eat(TokenType.Equals);
 
         IExpressionNode? expression = ParseExpression(type, parameters, locals);
@@ -593,12 +601,12 @@ public class Parser
         return nextToken;
     }
 
-    private List<Token> PeekUntil(TokenType untilType)
+    private List<Token> PeekUntil(params TokenType[] untilTypes)
     {
         var savedPosition = _lexer.Position;  // save the current position
         List<Token> tokens = [_currentToken,_lexer.Advance()];
 
-        while (tokens[^1].Type != untilType)
+        while (!untilTypes.Contains(tokens[^1].Type))
             tokens.Add(_lexer.Advance());
 
         _lexer.Position = savedPosition;  // restore the position

@@ -44,6 +44,7 @@ public class ILCreationVisitor : INodeVisitor
         {
             Console.WriteLine($"{typeBuilder.Name}::{method.Name}({string.Join(", ", method.Parameters.Select(x => x.Type.Name))})");
             method.Accept(this, option);
+            Console.WriteLine(option.IL.ILOffset);
             Console.WriteLine();
             Console.WriteLine();
         }
@@ -160,6 +161,9 @@ public class ILCreationVisitor : INodeVisitor
 
         LocalVariableNode variable = (node as LocalVariableNode)!;
 
+        if (node.Name == "input")
+            ;
+
         if (locals.Any(x => x.node.Name == variable.Name))
         {
             var local = locals.First(x => x.node.Name == variable.Name);
@@ -249,14 +253,9 @@ public class ILCreationVisitor : INodeVisitor
     {
         var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, []);
         ILGenerator constructorGenerator = constructorBuilder.GetILGenerator();
+        NodeVisitOptions options = new() { IL = constructorGenerator };
 
         Console.WriteLine($"{typeBuilder.Name}::.cctor");
-
-        var constructorInfo = typeof(object).GetConstructor([]);
-        constructorGenerator.Emit(OpCodes.Ldarg_0);
-        Console.WriteLine("ldarg_0");
-        constructorGenerator.Emit(OpCodes.Call, constructorInfo!);
-        Console.WriteLine($"call {constructorInfo!.Name}");
 
         foreach (var field in node.Fields)
         {
@@ -264,7 +263,9 @@ public class ILCreationVisitor : INodeVisitor
             constructorGenerator.Emit(OpCodes.Ldarg_0);
             Console.WriteLine("ldarg_0");
 
-            if (AddToStackDelegates.TryGetValue(field.Type, out Action<ILGenerator, object>? value))
+            if (field.ValueContainer is IExpressionNode expression)
+                expression.Accept(this, options);
+            else if (AddToStackDelegates.TryGetValue(field.Type, out Action<ILGenerator, object>? value))
                 value(constructorGenerator, field.Value);
             else
             {
@@ -276,6 +277,11 @@ public class ILCreationVisitor : INodeVisitor
             Console.WriteLine($"stfld {typeBuilder.Name}::{fields[^1].Name}");
         }
 
+        var constructorInfo = typeof(object).GetConstructor([]);
+        constructorGenerator.Emit(OpCodes.Ldarg_0);
+        Console.WriteLine("ldarg_0");
+        constructorGenerator.Emit(OpCodes.Call, constructorInfo!);
+        Console.WriteLine($"call {constructorInfo!.Name}");
         constructorGenerator.Emit(OpCodes.Ret);
         Console.WriteLine("ret");
     }
