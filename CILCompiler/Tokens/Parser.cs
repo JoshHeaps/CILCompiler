@@ -397,7 +397,7 @@ public class Parser
             expression = locals.First(x => x.Name == identifier);
         else if (_fields is not null && _fields.Any(x => x.Name == identifier))
             expression = _fields.First(x => x.Name == identifier);
-        else if (_currentToken.Type == TokenType.Parenthesis
+        else if ((_currentToken.Type == TokenType.Parenthesis && _currentToken.Value == "(")
               || (_currentToken.Type == TokenType.Dot && NextTypesAre(TokenType.Identifier, TokenType.Parenthesis)))
         {
             if (_currentToken.Type == TokenType.Parenthesis)
@@ -406,7 +406,12 @@ public class Parser
             return ParseMethodCall(parameters!, locals!, objectName: identifier);
         }
         else
+        {
+            if (int.TryParse(identifier, out _))
+                type = typeof(int);
+
             expression = new LiteralNode(typeConversions[type](identifier));
+        }
 
         return expression;
     }
