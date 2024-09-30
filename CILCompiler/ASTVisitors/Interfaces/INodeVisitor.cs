@@ -1,4 +1,5 @@
 ﻿using CILCompiler.ASTNodes.Implementations.Expressions;
+using CILCompiler.ASTNodes.Implementations.FlowControllers;
 using CILCompiler.ASTNodes.Interfaces;
 using System.Reflection.Emit;
 
@@ -18,6 +19,7 @@ public interface INodeVisitor<T>
     public T VisitValueAccessor(IValueAccessorNode node, NodeVisitOptions? options = null);
     public T VisitAssignment(AssignmentNode node, NodeVisitOptions? options = null);
     public T VisitMethodCall(IMethodCallNode node, NodeVisitOptions? options = null);
+    public T VisitIfStatement(IfStatementNode node, NodeVisitOptions? options = null);
 }
 
 public interface INodeVisitor
@@ -34,22 +36,7 @@ public interface INodeVisitor
     public void VisitValueAccessor(IValueAccessorNode node, NodeVisitOptions? options = null);
     public void VisitAssignment(AssignmentNode node, NodeVisitOptions? options = null);
     public void VisitMethodCall(IMethodCallNode node, NodeVisitOptions? options = null);
-}
-
-public interface IOptionsNodeVisitor
-{
-    public void VisitBinaryExpression(BinaryExpressionNode node, NodeVisitOptions? options = null);
-    public void VisitExpression(IExpressionNode node, NodeVisitOptions? options = null);
-    public void VisitPrintStatement(PrintStatementNode node, NodeVisitOptions? options = null);
-    public void VisitMethodCall(IMethodNode node, NodeVisitOptions? options = null);
-    public void VisitObject(IObjectNode node, NodeVisitOptions? options = null);
-    public void VisitField(IFieldNode node, NodeVisitOptions? options = null);
-    public void VisitStatement(StatementNode node, NodeVisitOptions? options = null);
-    public void VisitParameter(IParameterNode node, NodeVisitOptions? options = null);
-    public void VisitLocalVariable(ILocalVariableNode node, NodeVisitOptions? options = null);
-    public void VisitValueAccessor(IValueAccessorNode node, NodeVisitOptions? options = null);
-    public void VisitAssignment(AssignmentNode node, NodeVisitOptions? options = null);
-    public void VisitReturnStatement(ReturnStatementNode node, NodeVisitOptions? options = null);
+    public void VisitIfStatement(IfStatementNode node, NodeVisitOptions? options = null);
 }
 
 public class NodeVisitOptions

@@ -1,6 +1,7 @@
 ﻿using CILCompiler.ASTNodes;
 using CILCompiler.ASTNodes.Implementations;
 using CILCompiler.ASTNodes.Implementations.Expressions;
+using CILCompiler.ASTNodes.Implementations.FlowControllers;
 using CILCompiler.ASTNodes.Interfaces;
 using CILCompiler.Utilities;
 
@@ -200,7 +201,10 @@ public class Parser
 
         while (_currentToken.Type != TokenType.Brace)
         {
-            if (_currentToken.Type == TokenType.Type && PeekNextToken().Type == TokenType.Equals)
+            if (_currentToken.Type == TokenType.If)
+                body.Add(ParseIfStatement(type, parameters, locals));
+
+            else if (_currentToken.Type == TokenType.Type && PeekNextToken().Type == TokenType.Equals)
                 body.Add(ParseLocalDeclaration(parameters, locals));
 
             else if (_currentToken.Type == TokenType.Identifier && PeekNextToken().Type == TokenType.Equals)
@@ -216,10 +220,115 @@ public class Parser
             if (body.Count > 0 && body[^1] is ILocalVariableNode local)
                 locals.Add(local);
 
-            Eat(TokenType.Semicolon);
+            if (body[^1] is not IFlowControllerNode)
+                Eat(TokenType.Semicolon);
         }
 
         return body;
+    }
+
+    private IExpressionNode ParseIfStatement(Type type, List<IParameterNode> parameters, List<ILocalVariableNode> locals)
+    {
+        Eat(TokenType.If);
+        Eat(TokenType.Parenthesis);
+        var condition = ParsePredicate(typeof(bool), parameters, locals);
+        Eat(TokenType.Parenthesis);
+        Eat(TokenType.Brace);
+        var body = new List<IExpressionNode>();
+
+        while (_currentToken.Type != TokenType.Brace)
+        {
+            if (_currentToken.Type == TokenType.If)
+                body.Add(ParseIfStatement(type, parameters, locals));
+
+            else if (_currentToken.Type == TokenType.Type && PeekNextToken().Type == TokenType.Equals)
+                body.Add(ParseLocalDeclaration(parameters, locals));
+
+            else if (_currentToken.Type == TokenType.Identifier && PeekNextToken().Type == TokenType.Equals)
+                body.Add(ParseValueAssignment(parameters, locals));
+
+            else if (_currentToken.Type == TokenType.Identifier
+                && (PeekNextToken().Type == TokenType.Parenthesis || NextTypesAre(TokenType.Dot, TokenType.Identifier, TokenType.Parenthesis)))
+                body.Add(ParseMethodCall(parameters, locals));
+
+            else if (_currentToken.Type == TokenType.Return)
+                body.Add(ParseReturnStatement(type, parameters, locals));
+
+            if (body.Count > 0 && body[^1] is ILocalVariableNode local)
+                locals.Add(local);
+
+            Eat(TokenType.Semicolon);
+        }
+
+        Eat(TokenType.Brace);
+
+        if (_currentToken != (TokenType.FlowControl, "else"))
+            return new IfStatementNode(condition, body, []);
+
+        var elseBody = new List<IExpressionNode>();
+
+        Eat(TokenType.FlowControl);
+        Eat(TokenType.Brace);
+
+        while (_currentToken.Type != TokenType.Brace)
+        {
+            if (_currentToken.Type == TokenType.If)
+                elseBody.Add(ParseIfStatement(type, parameters, locals));
+
+            else if (_currentToken.Type == TokenType.Type && PeekNextToken().Type == TokenType.Equals)
+                elseBody.Add(ParseLocalDeclaration(parameters, locals));
+
+            else if (_currentToken.Type == TokenType.Identifier && PeekNextToken().Type == TokenType.Equals)
+                elseBody.Add(ParseValueAssignment(parameters, locals));
+
+            else if (_currentToken.Type == TokenType.Identifier
+                && (PeekNextToken().Type == TokenType.Parenthesis || NextTypesAre(TokenType.Dot, TokenType.Identifier, TokenType.Parenthesis)))
+                elseBody.Add(ParseMethodCall(parameters, locals));
+
+            else if (_currentToken.Type == TokenType.Return)
+                elseBody.Add(ParseReturnStatement(type, parameters, locals));
+
+            if (body.Count > 0 && body[^1] is ILocalVariableNode local)
+                locals.Add(local);
+
+            Eat(TokenType.Semicolon);
+        }
+
+        Eat(TokenType.Brace);
+
+        return new IfStatementNode(condition, body, elseBody);
+    }
+
+    private PredicateNode ParsePredicate(Type type, List<IParameterNode> parameters, List<ILocalVariableNode> locals)
+    {
+        var left = ParseExpression(type, parameters, locals);
+
+        string Operator;
+
+        if (_currentToken.Type == TokenType.Equals)
+        {
+            Operator = "==";
+
+            Eat(TokenType.Equals);
+            Eat(TokenType.Equals);
+        }
+        else
+        {
+            Operator = _currentToken.Value;
+
+            Eat(TokenType.Comparer);
+
+            if (_currentToken.Type == TokenType.Equals)
+            {
+                Operator += "=";
+
+                Eat(TokenType.Equals);
+            }
+        }
+
+        var right = ParseExpression(type, parameters, locals);
+
+        return new(left, right, Operator);
     }
 
     private MethodCallNode ParseMethodCall(List<IParameterNode> parameters, List<ILocalVariableNode> locals, string? objectName = null, string? methodName = null)

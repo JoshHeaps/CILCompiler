@@ -1,5 +1,6 @@
 ﻿using CILCompiler.ASTNodes.Implementations;
 using CILCompiler.ASTNodes.Implementations.Expressions;
+using CILCompiler.ASTNodes.Implementations.FlowControllers;
 using CILCompiler.ASTNodes.Interfaces;
 using CILCompiler.ASTVisitors.Interfaces;
 
@@ -155,5 +156,10 @@ public class PrintVisitor : INodeVisitor
         }
 
         Console.Write(")");
+    }
+
+    public void VisitIfStatement(IfStatementNode node, NodeVisitOptions? options = null)
+    {
+        throw new NotImplementedException();
     }
 }

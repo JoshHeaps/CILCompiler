@@ -8,7 +8,8 @@ public class Lexer
     private static readonly Dictionary<string, TokenType> KeywordTypes = new()
     {
         { "class", TokenType.Keyword },
-        { "if", TokenType.FlowControl },
+        { "if", TokenType.If },
+        { "else", TokenType.FlowControl },
         { "while", TokenType.FlowControl },
         { "object", TokenType.Type },
         { "int", TokenType.Type },
@@ -26,6 +27,9 @@ public class Lexer
         { '{', new (TokenType.Brace, "{") },
         { '}', new (TokenType.Brace, "}") },
         { ',', new (TokenType.Comma, ",") },
+        { '<', new (TokenType.Comparer, "<") },
+        { '>', new (TokenType.Comparer, ">") },
+        { '!', new (TokenType.Comparer, "!") },
         { '.', new (TokenType.Dot, ".") },
         { '=', new (TokenType.Equals, "=") },
         { '+', new (TokenType.Operator, "+") },

@@ -3,7 +3,9 @@
 public enum TokenType
 {
     Operator,
+    Comparer,
     Keyword,
+    If,
     Identifier,
     Type,
     Dot,
@@ -15,7 +17,7 @@ public enum TokenType
     Parenthesis,
     FlowControl,
     EndOfFile,
-    Error,
     Return,
     Any,
+    Error,
 }

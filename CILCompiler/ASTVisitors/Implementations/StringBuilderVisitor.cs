@@ -1,4 +1,5 @@
 ﻿using CILCompiler.ASTNodes.Implementations.Expressions;
+using CILCompiler.ASTNodes.Implementations.FlowControllers;
 using CILCompiler.ASTNodes.Interfaces;
 using CILCompiler.ASTVisitors.Interfaces;
 
@@ -66,6 +67,11 @@ public class StringBuilderVisitor : INodeVisitor<string>
     }
 
     public string VisitMethodCall(IMethodCallNode node, NodeVisitOptions? options = null)
+    {
+        throw new NotImplementedException();
+    }
+
+    public string VisitIfStatement(IfStatementNode node, NodeVisitOptions? options = null)
     {
         throw new NotImplementedException();
     }

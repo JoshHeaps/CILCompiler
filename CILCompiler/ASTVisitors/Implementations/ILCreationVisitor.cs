@@ -1,5 +1,6 @@
 ﻿using CILCompiler.ASTNodes.Implementations;
 using CILCompiler.ASTNodes.Implementations.Expressions;
+using CILCompiler.ASTNodes.Implementations.FlowControllers;
 using CILCompiler.ASTNodes.Interfaces;
 using CILCompiler.ASTVisitors.Interfaces;
 using CILCompiler.Extensions;
@@ -327,7 +328,7 @@ public class ILCreationVisitor : INodeVisitor
         if (callNode.MethodNode.Name == "Print")
         {
             callNode.Arguments[0].Accept(this, options);
-            il.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", new[] { callNode.Arguments[0].GetValueType() })!);
+            il.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", [callNode.Arguments[0].GetValueType()])!);
             Console.WriteLine($"call void [System.Console]System.Console::Write({callNode.Arguments[0].GetValueType().Name})");
 
             return;
@@ -343,5 +344,41 @@ public class ILCreationVisitor : INodeVisitor
 
         il.Emit(OpCodes.Call, methods.First(x => x.Name == callNode.MethodNode.Name));
         Console.WriteLine($"call instance {callNode.MethodNode.ReturnType.Name.ToLower()} {typeBuilder.Name}::{callNode.MethodNode.Name}({string.Join(", ", node.Arguments.Select(x => x.GetValueType()))})");
+    }
+
+    Dictionary<string, OpCode> ComparisonActions = new()
+    {
+        { ">", OpCodes.Ble }, // do the opposite comparison because it branches to the else block.
+        { ">=", OpCodes.Blt },
+        { "<", OpCodes.Bge },
+        { "<=", OpCodes.Bgt },
+        { "==", OpCodes.Bne_Un },
+        { "!=", OpCodes.Beq },
+    };
+
+    public void VisitIfStatement(IfStatementNode node, NodeVisitOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(options.IL);
+        ILGenerator il = options.IL;
+
+        var elseLabel = il.DefineLabel();
+        var endIfLabel = il.DefineLabel();
+
+        node.Condition.Left.Accept(this, options);
+        node.Condition.Right.Accept(this, options);
+        il.Emit(ComparisonActions[node.Condition.ComparisonOperator], elseLabel);
+
+        foreach (var expression in node.Body)
+            expression.Accept(this, options);
+
+        il.Emit(OpCodes.Br_S, endIfLabel);
+
+        il.MarkLabel(elseLabel);
+
+        foreach (var expression in node.ElseBody)
+            expression.Accept(this, options);
+
+        il.MarkLabel(endIfLabel);
     }
 }

@@ -1,7 +1,9 @@
-﻿namespace CILCompiler.ASTNodes.Interfaces;
+﻿using CILCompiler.ASTNodes.Implementations.Expressions;
 
-public interface IFlowControllerNode : IAstNode
+namespace CILCompiler.ASTNodes.Interfaces;
+
+public interface IFlowControllerNode : IExpressionNode
 {
-    public IExpressionNode Condition { get; }
+    public PredicateNode Condition { get; }
     public List<IExpressionNode> Body { get; }
 }
