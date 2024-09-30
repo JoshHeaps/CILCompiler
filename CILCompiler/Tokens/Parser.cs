@@ -484,7 +484,7 @@ public class Parser
 
         IExpressionNode? expression = ParseExpression(type, parameters, locals);
 
-        return new LocalVariableNode(name, new ValueAccessorNode(expression), declaredPosition);
+        return new LocalVariableNode(type, name, new ValueAccessorNode(expression), declaredPosition);
     }
 
     Dictionary<Type, Func<string, object>> typeConversions = new()

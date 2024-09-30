@@ -3,10 +3,9 @@ using CILCompiler.ASTVisitors.Interfaces;
 
 namespace CILCompiler.ASTNodes.Implementations;
 
-public record LocalVariableNode(string Name, IValueAccessorNode ValueAccessor, int DeclaredPosition) : ILocalVariableNode
+public record LocalVariableNode(Type Type, string Name, IValueAccessorNode ValueAccessor, int DeclaredPosition) : ILocalVariableNode
 {
     public object Value { get => ValueAccessor.GetValue(); set => ValueAccessor.SetValue((value as IExpressionNode)!); }
-    public Type Type { get => ValueAccessor.GetValueType(); }
     public string Expression { get => $"{Type.Name} {Name} = {Value};"; }
 
     public T Accept<T>(INodeVisitor<T> visitor) =>

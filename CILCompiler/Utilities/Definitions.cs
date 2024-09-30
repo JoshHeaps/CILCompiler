@@ -38,8 +38,13 @@ public static class Definitions
     private static void Print(ILGenerator il, MethodCallNode callNode, INodeVisitor visitor, NodeVisitOptions? options = null)
     {
         callNode.Arguments[0].Accept(visitor, options);
-        il.Emit(OpCodes.Call, typeof(Console).GetMethod("Write", [callNode.Arguments[0].GetValueType()])!);
-        Console.WriteLine($"call void [System.Console]System.Console::Write({callNode.Arguments[0].GetValueType().Name})");
+        var type = callNode.Arguments[0].GetValueType();
+
+        if (type == typeof(object))
+            type = typeof(string);
+
+        il.Emit(OpCodes.Call, typeof(Console).GetMethod("Write", [type])!);
+        Console.WriteLine($"call void [System.Console]System.Console::Write({type.Name})");
     }
 
     private static void PrintLine(ILGenerator il, MethodCallNode callNode, INodeVisitor visitor, NodeVisitOptions? options = null)
