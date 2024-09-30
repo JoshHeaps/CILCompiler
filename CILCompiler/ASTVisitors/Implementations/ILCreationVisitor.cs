@@ -328,8 +328,16 @@ public class ILCreationVisitor : INodeVisitor
         if (callNode.MethodNode.Name == "Print")
         {
             callNode.Arguments[0].Accept(this, options);
-            il.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", [callNode.Arguments[0].GetValueType()])!);
+            il.Emit(OpCodes.Call, typeof(Console).GetMethod("Write", [callNode.Arguments[0].GetValueType()])!);
             Console.WriteLine($"call void [System.Console]System.Console::Write({callNode.Arguments[0].GetValueType().Name})");
+
+            return;
+        }
+        else if (callNode.MethodNode.Name == "PrintLine")
+        {
+            callNode.Arguments[0].Accept(this, options);
+            il.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", [callNode.Arguments[0].GetValueType()])!);
+            Console.WriteLine($"call void [System.Console]System.Console::WriteLine({callNode.Arguments[0].GetValueType().Name})");
 
             return;
         }

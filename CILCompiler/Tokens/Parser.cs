@@ -126,6 +126,8 @@ public class Parser
         {
             if (_methodCallPlaceholders[i].node.MethodNode.Name == "Print")
                 continue;
+            if (_methodCallPlaceholders[i].node.MethodNode.Name == "PrintLine")
+                continue;
 
             var method = _methods.First(x => x.Name == _methodCallPlaceholders[i].node.MethodNode.Name);
             var callNode = _methodCallPlaceholders[i].node;
