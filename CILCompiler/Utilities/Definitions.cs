@@ -32,6 +32,7 @@ public static class Definitions
         { "PrintLine", PrintLine },
         { "ReadLine", ReadLine },
         { "ReadInt", ReadInt },
+        { "RandomInt", RandomInt },
     };
 
     private static void Print(ILGenerator il, MethodCallNode callNode, INodeVisitor visitor, NodeVisitOptions? options = null)
@@ -60,5 +61,30 @@ public static class Definitions
         Console.WriteLine($"call string [System.Console]System.Console::ReadLine()");
         il.Emit(OpCodes.Call, typeof(int).GetMethod("Parse", [typeof(string)])!);
         Console.WriteLine("call int32 [System.Runtime]System.Int32::Parse(string)");
+    }
+
+    private static void RandomInt(ILGenerator il, MethodCallNode callNode, INodeVisitor visitor, NodeVisitOptions? options = null)
+    {
+        il.Emit(OpCodes.Newobj, typeof(Random).GetConstructor([])!);
+        Console.WriteLine($"newobj instance void [System.Runtime]System.Random::.ctor()");
+
+        if (callNode.Arguments.Count == 2)
+        {
+            callNode.Arguments[0].Accept(visitor, options);
+            callNode.Arguments[1].Accept(visitor, options);
+            il.Emit(OpCodes.Callvirt, typeof(Random).GetMethod("Next", [typeof(int), typeof(int)])!);
+            Console.WriteLine("callvirt instance int32 [System.Runtime]System.Random::Next(int32, int32)");
+        }
+        else if (callNode.Arguments.Count == 1)
+        {
+            callNode.Arguments[0].Accept(visitor, options);
+            il.Emit(OpCodes.Callvirt, typeof(Random).GetMethod("Next", [typeof(int)])!);
+            Console.WriteLine("callvirt instance int32 [System.Runtime]System.Random::Next(int32)");
+        }
+        else
+        {
+            il.Emit(OpCodes.Callvirt, typeof(Random).GetMethod("Next", [])!);
+            Console.WriteLine("callvirt instance int32 [System.Runtime]System.Random::Next()");
+        }
     }
 }
