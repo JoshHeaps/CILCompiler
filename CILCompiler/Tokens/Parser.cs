@@ -4,6 +4,7 @@ using CILCompiler.ASTNodes.Implementations.Expressions;
 using CILCompiler.ASTNodes.Implementations.FlowControllers;
 using CILCompiler.ASTNodes.Interfaces;
 using CILCompiler.Utilities;
+using System.Linq.Expressions;
 
 namespace CILCompiler.Tokens;
 
@@ -210,12 +211,15 @@ public class Parser
             else if (_currentToken.Type == TokenType.Identifier && PeekNextToken().Type == TokenType.Equals)
                 body.Add(ParseValueAssignment(parameters, locals));
 
-            else if (_currentToken.Type == TokenType.Identifier 
+            else if (_currentToken.Type == TokenType.Identifier
                 && (PeekNextToken().Type == TokenType.Parenthesis || NextTypesAre(TokenType.Dot, TokenType.Identifier, TokenType.Parenthesis)))
                 body.Add(ParseMethodCall(parameters, locals));
 
             else if (_currentToken.Type == TokenType.Return)
                 body.Add(ParseReturnStatement(type, parameters, locals));
+
+            else if (_currentToken.Type == TokenType.Identifier && NextTypesAre(TokenType.Operator, TokenType.Operator, TokenType.Semicolon))
+                body.Add(ParseIncrement(parameters, locals));
 
             if (body.Count > 0 && body[^1] is ILocalVariableNode local)
                 locals.Add(local);
@@ -439,6 +443,31 @@ public class Parser
         return relevantTokens.Any(x => x.Type == TokenType.Operator);
     }
 
+    private AssignmentNode ParseIncrement(List<IParameterNode> parameters, List<ILocalVariableNode> locals)
+    {
+        string identifier = ParseIdentifier();
+        var type = locals.FirstOrDefault(x => x.Name == identifier)?.Type
+            ?? parameters.FirstOrDefault(x => x.Name == identifier)?.Type
+            ?? _fields.FirstOrDefault(x => x.Name == identifier)?.Type
+            ?? throw new InvalidProgramException("Identifier doesn't exist in this context.");
+
+        IExpressionNode expression;
+
+        if (parameters is not null && parameters.Any(x => x.Name == identifier))
+            expression = parameters.First(x => x.Name == identifier);
+        else if (locals is not null && locals.Any(x => x.Name == identifier))
+            expression = locals.First(x => x.Name == identifier);
+        else if (_fields is not null && _fields.Any(x => x.Name == identifier))
+            expression = _fields.First(x => x.Name == identifier);
+        else
+            throw new InvalidProgramException("Identifier doesn't exist in this context.");
+
+        string @operator = ParseOperator();
+        Eat(TokenType.Operator);
+
+        return new(type, identifier, new ValueAccessorNode(new BinaryExpressionNode(expression, new LiteralNode(1), @operator)));
+    }
+
     private AssignmentNode ParseValueAssignment(List<IParameterNode> parameters, List<ILocalVariableNode> locals)
     {
         string name = ParseIdentifier();
@@ -447,7 +476,6 @@ public class Parser
             ?? _fields.FirstOrDefault(x => x.Name == name)?.Type
             ?? throw new InvalidProgramException("Identifier doesn't exist in this context.");
 
-        Eat(TokenType.Equals);
         var tokens = PeekUntil(TokenType.Semicolon);
         IExpressionNode? expression = ParseExpression(type, parameters, locals);
 
