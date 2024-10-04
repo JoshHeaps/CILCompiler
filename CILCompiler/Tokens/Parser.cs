@@ -5,6 +5,7 @@ using CILCompiler.ASTNodes.Implementations.FlowControllers;
 using CILCompiler.ASTNodes.Interfaces;
 using CILCompiler.Utilities;
 using System.Linq.Expressions;
+using System.Numerics;
 
 namespace CILCompiler.Tokens;
 
@@ -450,6 +451,9 @@ public class Parser
             ?? parameters.FirstOrDefault(x => x.Name == identifier)?.Type
             ?? _fields.FirstOrDefault(x => x.Name == identifier)?.Type
             ?? throw new InvalidProgramException("Identifier doesn't exist in this context.");
+
+        if (!type.GetInterfaces().Any(i => i.IsGenericType && (i.GetGenericTypeDefinition() == typeof(INumber<>))))
+            throw new InvalidProgramException("Cannot increment a non numeric type");
 
         IExpressionNode expression;
 
