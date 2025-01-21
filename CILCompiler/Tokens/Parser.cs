@@ -203,6 +203,7 @@ public class Parser
 
         while (_currentToken.Type != TokenType.Brace)
         {
+            Console.WriteLine(body.Count);
             if (_currentToken.Type == TokenType.If)
                 body.Add(ParseIfStatement(type, parameters, locals));
 
@@ -219,7 +220,7 @@ public class Parser
             else if (_currentToken.Type == TokenType.Return)
                 body.Add(ParseReturnStatement(type, parameters, locals));
 
-            else if (_currentToken.Type == TokenType.Identifier && NextTypesAre(TokenType.Operator, TokenType.Operator, TokenType.Semicolon))
+            else if (_currentToken.Type == TokenType.Identifier && NextTypesAre(TokenType.Operator, TokenType.Operator))
                 body.Add(ParseIncrement(parameters, locals));
 
             if (body.Count > 0 && body[^1] is ILocalVariableNode local)
@@ -472,6 +473,7 @@ public class Parser
             ?? _fields.FirstOrDefault(x => x.Name == name)?.Type
             ?? throw new InvalidProgramException("Identifier doesn't exist in this context.");
 
+        Eat(TokenType.Equals);
         var tokens = PeekUntil(TokenType.Semicolon);
         IExpressionNode? expression = ParseExpression(type, parameters, locals);
 
