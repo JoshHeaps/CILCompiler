@@ -430,6 +430,6 @@ public class ILCreationVisitor : INodeVisitor
         node.Condition.Left.Accept(this, options);
         node.Condition.Right.Accept(this, options);
         il.Emit(ComparisonActions[node.Condition.ComparisonOperator], loopStartLabel);
-        Console.WriteLine($"{ComparisonActions[node.Condition.ComparisonOperator]} ELSE_LABEL");
+        Console.WriteLine($"{ComparisonActions[node.Condition.ComparisonOperator]} LOOP_START_LABEL");
     }
 }
