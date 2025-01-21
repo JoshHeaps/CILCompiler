@@ -204,7 +204,10 @@ public class Parser
         {
             Console.WriteLine(body.Count);
             if (_currentToken.Type == TokenType.If)
-                body.Add(ParseIfStatement(type, parameters, [..locals, ..outerLocals]));
+                body.Add(ParseIfStatement(type, parameters, [.. locals, .. outerLocals]));
+
+            else if (_currentToken.Type == TokenType.FlowControl && _currentToken.Value == "while")
+                body.Add(ParseWhileLoop(type, parameters, [.. locals, .. outerLocals]));
 
             else if (_currentToken.Type == TokenType.Type && PeekNextToken().Type == TokenType.Equals)
                 body.Add(ParseLocalDeclaration(parameters, [.. locals, .. outerLocals]));
@@ -253,6 +256,19 @@ public class Parser
         Eat(TokenType.Brace);
 
         return new IfStatementNode(condition, body, elseBody);
+    }
+
+    private WhileLoopNode ParseWhileLoop(Type type, List<IParameterNode> parameters, List<ILocalVariableNode> locals)
+    {
+        Eat(TokenType.FlowControl);
+        Eat(TokenType.Parenthesis);
+        var condition = ParsePredicate(parameters, locals);
+        Eat(TokenType.Parenthesis);
+        Eat(TokenType.Brace);
+        var body = ParseMethodBody(type, parameters, locals);
+        Eat(TokenType.Brace);
+
+        return new(condition, body);
     }
 
     private PredicateNode ParsePredicate(List<IParameterNode> parameters, List<ILocalVariableNode> locals)

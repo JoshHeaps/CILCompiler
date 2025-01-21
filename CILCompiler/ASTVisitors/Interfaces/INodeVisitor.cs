@@ -20,6 +20,7 @@ public interface INodeVisitor<T>
     public T VisitAssignment(AssignmentNode node, NodeVisitOptions? options = null);
     public T VisitMethodCall(IMethodCallNode node, NodeVisitOptions? options = null);
     public T VisitIfStatement(IfStatementNode node, NodeVisitOptions? options = null);
+    public T VisitWhileLoop(WhileLoopNode node, NodeVisitOptions? options = null);
 }
 
 public interface INodeVisitor
@@ -37,6 +38,7 @@ public interface INodeVisitor
     public void VisitAssignment(AssignmentNode node, NodeVisitOptions? options = null);
     public void VisitMethodCall(IMethodCallNode node, NodeVisitOptions? options = null);
     public void VisitIfStatement(IfStatementNode node, NodeVisitOptions? options = null);
+    public void VisitWhileLoop(WhileLoopNode node, NodeVisitOptions? options = null);
 }
 
 public class NodeVisitOptions

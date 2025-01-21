@@ -75,4 +75,9 @@ public class StringBuilderVisitor : INodeVisitor<string>
     {
         throw new NotImplementedException();
     }
+
+    public string VisitWhileLoop(WhileLoopNode node, NodeVisitOptions? options = null)
+    {
+        throw new NotImplementedException();
+    }
 }

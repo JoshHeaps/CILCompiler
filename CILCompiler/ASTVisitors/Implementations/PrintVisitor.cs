@@ -162,4 +162,9 @@ public class PrintVisitor : INodeVisitor
     {
         throw new NotImplementedException();
     }
+
+    public void VisitWhileLoop(WhileLoopNode node, NodeVisitOptions? options = null)
+    {
+        throw new NotImplementedException();
+    }
 }

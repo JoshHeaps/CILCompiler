@@ -357,7 +357,7 @@ public class ILCreationVisitor : INodeVisitor
         Console.WriteLine($"call instance {callNode.MethodNode.ReturnType.Name.ToLower()} {TypeBuilder.Name}::{callNode.MethodNode.Name}({string.Join(", ", node.Arguments.Select(x => x.GetValueType()))})");
     }
 
-    private readonly Dictionary<string, OpCode> ComparisonActions = new()
+    private readonly Dictionary<string, OpCode> IfComparisonActions = new()
     {
         { ">", OpCodes.Ble }, // do the opposite comparison because it branches to the else block.
         { ">=", OpCodes.Blt },
@@ -365,6 +365,16 @@ public class ILCreationVisitor : INodeVisitor
         { "<=", OpCodes.Bgt },
         { "==", OpCodes.Bne_Un },
         { "!=", OpCodes.Beq },
+    };
+
+    private readonly Dictionary<string, OpCode> ComparisonActions = new()
+    {
+        { ">", OpCodes.Bgt }, // do the opposite comparison because it branches to the else block.
+        { ">=", OpCodes.Bge },
+        { "<", OpCodes.Blt },
+        { "<=", OpCodes.Ble },
+        { "==", OpCodes.Beq },
+        { "!=", OpCodes.Bne_Un },
     };
 
     public void VisitIfStatement(IfStatementNode node, NodeVisitOptions? options = null)
@@ -378,8 +388,8 @@ public class ILCreationVisitor : INodeVisitor
 
         node.Condition.Left.Accept(this, options);
         node.Condition.Right.Accept(this, options);
-        il.Emit(ComparisonActions[node.Condition.ComparisonOperator], elseLabel);
-        Console.WriteLine($"{ComparisonActions[node.Condition.ComparisonOperator]} ELSE_LABEL");
+        il.Emit(IfComparisonActions[node.Condition.ComparisonOperator], elseLabel);
+        Console.WriteLine($"{IfComparisonActions[node.Condition.ComparisonOperator]} ELSE_LABEL");
         Console.WriteLine();
 
         foreach (var expression in node.Body)
@@ -398,5 +408,28 @@ public class ILCreationVisitor : INodeVisitor
         Console.WriteLine();
         il.MarkLabel(endIfLabel);
         Console.WriteLine("END_IF_LABEL:");
+    }
+    
+    public void VisitWhileLoop(WhileLoopNode node, NodeVisitOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(options.IL);
+        ILGenerator il = options.IL;
+
+        var conditionLabel = il.DefineLabel();
+        var loopStartLabel = il.DefineLabel();
+
+        il.MarkLabel(loopStartLabel);
+        Console.WriteLine("LOOP_START_LABEL");
+
+        foreach (var expression in node.Body)
+            expression.Accept(this, options);
+
+        il.MarkLabel(conditionLabel);
+        Console.WriteLine("CONDITION_LABEL");
+        node.Condition.Left.Accept(this, options);
+        node.Condition.Right.Accept(this, options);
+        il.Emit(ComparisonActions[node.Condition.ComparisonOperator], loopStartLabel);
+        Console.WriteLine($"{ComparisonActions[node.Condition.ComparisonOperator]} ELSE_LABEL");
     }
 }
