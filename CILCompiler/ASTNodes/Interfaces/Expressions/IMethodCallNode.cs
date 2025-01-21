@@ -3,5 +3,6 @@
 public interface IMethodCallNode : IExpressionNode
 {
     List<IValueAccessorNode> Arguments { get; }
-    public IMethodNode MethodNode { get; }
+    IMethodNode MethodNode { get; }
+    Type GetMethodNodeType();
 }

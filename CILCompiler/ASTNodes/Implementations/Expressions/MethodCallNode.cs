@@ -1,5 +1,6 @@
 ﻿using CILCompiler.ASTNodes.Interfaces;
 using CILCompiler.ASTVisitors.Interfaces;
+using CILCompiler.Utilities;
 
 namespace CILCompiler.ASTNodes.Implementations.Expressions;
 
@@ -15,4 +16,12 @@ public class MethodCallNode(IMethodNode methodNode, List<IValueAccessorNode> arg
 
     public void Accept(INodeVisitor visitor, NodeVisitOptions? options = null) =>
         visitor.VisitMethodCall(this, options);
+
+    public Type GetMethodNodeType()
+    {
+        if (Definitions.DefaultMethodReturnTypes.TryGetValue(methodNode.Name, out var type))
+            return type;
+
+        return methodNode.ReturnType;
+    }
 }

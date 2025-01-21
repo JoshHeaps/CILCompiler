@@ -1,11 +1,6 @@
 ﻿using CILCompiler.ASTNodes.Implementations.Expressions;
 using CILCompiler.ASTVisitors.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection.Emit;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CILCompiler.Utilities;
 
@@ -26,13 +21,22 @@ public static class Definitions
         { "void", typeof(void) },
     };
 
-    public static readonly Dictionary<string, Action<ILGenerator, MethodCallNode, INodeVisitor, NodeVisitOptions>> DefaultMethods = new()
+    public static Dictionary<string, Action<ILGenerator, MethodCallNode, INodeVisitor, NodeVisitOptions>> DefaultMethods { get; } = new()
     {
         { "Print", Print },
         { "PrintLine", PrintLine },
         { "ReadLine", ReadLine },
         { "ReadInt", ReadInt },
         { "RandomInt", RandomInt },
+    };
+
+    public static Dictionary<string, Type> DefaultMethodReturnTypes { get; } = new()
+    {
+        { "Print", typeof(void) },
+        { "PrintLine", typeof(void) },
+        { "ReadLine", typeof(string) },
+        { "ReadInt", typeof(int) },
+        { "RandomInt", typeof(int) },
     };
 
     private static void Print(ILGenerator il, MethodCallNode callNode, INodeVisitor visitor, NodeVisitOptions? options = null)
@@ -43,6 +47,9 @@ public static class Definitions
         if (type == typeof(object))
             type = typeof(string);
 
+        if (type == typeof(void))
+            throw new InvalidProgramException("Cannot get value from type void.");
+
         il.Emit(OpCodes.Call, typeof(Console).GetMethod("Write", [type])!);
         Console.WriteLine($"call void [System.Console]System.Console::Write({type.Name})");
     }
@@ -50,8 +57,13 @@ public static class Definitions
     private static void PrintLine(ILGenerator il, MethodCallNode callNode, INodeVisitor visitor, NodeVisitOptions? options = null)
     {
         callNode.Arguments[0].Accept(visitor, options);
-        il.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", [callNode.Arguments[0].GetValueType()])!);
-        Console.WriteLine($"call void [System.Console]System.Console::WriteLine({callNode.Arguments[0].GetValueType().Name})");
+        var type = callNode.Arguments[0].GetValueType();
+
+        if (type == typeof(void))
+            throw new InvalidProgramException("Cannot get value from type void.");
+
+        il.Emit(OpCodes.Call, typeof(Console).GetMethod("WriteLine", [type])!);
+        Console.WriteLine($"call void [System.Console]System.Console::WriteLine({type.Name})");
     }
 
     private static void ReadLine(ILGenerator il, MethodCallNode callNode, INodeVisitor visitor, NodeVisitOptions? options = null)

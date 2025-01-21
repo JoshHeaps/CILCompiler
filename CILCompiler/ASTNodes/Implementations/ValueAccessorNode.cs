@@ -29,7 +29,7 @@ public record ValueAccessorNode : IValueAccessorNode
             FieldNode field => field.Type,
             LocalVariableNode localVariable => localVariable.Type,
             ParameterNode parameter => parameter.ValueAccessor.GetValueType(),
-            MethodCallNode methodCall => methodCall.MethodNode.ReturnType,
+            MethodCallNode methodCall => methodCall.GetMethodNodeType(),
             _ => throw new NotImplementedException(),
         };
     }

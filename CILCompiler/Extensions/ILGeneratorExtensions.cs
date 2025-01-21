@@ -16,11 +16,18 @@ public static class ILGeneratorExtensions
         var ptr = GCHandle.ToIntPtr(gch);
 
         if (IntPtr.Size == 4)
+        {
             il.Emit(OpCodes.Ldc_I4, ptr.ToInt32());
+            Console.WriteLine("ldc.i4.s " + ptr.ToInt32());
+        }
         else
+        {
             il.Emit(OpCodes.Ldc_I8, ptr.ToInt64());
+            Console.WriteLine("ldc.i8.s " + ptr.ToInt64());
+        }
 
         il.Emit(OpCodes.Ldobj, typeof(TInst));
+        Console.WriteLine("ldobj " + ptr);
 
         if (disposePointer)
             gch.Free();

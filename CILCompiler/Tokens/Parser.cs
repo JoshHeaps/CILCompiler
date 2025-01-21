@@ -381,9 +381,9 @@ public class Parser
         return new(new ValueAccessorNode(ParseExpression(type, parameters, locals)));
     }
 
-    private IExpressionNode ParseExpression(Type? type = null, List<IParameterNode>? parameters = null, List<ILocalVariableNode>? locals = null)
+    private IExpressionNode ParseExpression(Type? type = null, List<IParameterNode>? parameters = null, List<ILocalVariableNode>? locals = null, bool binaryOpCheck = true)
     {
-        if (CheckIfBinary())
+        if (binaryOpCheck && CheckIfBinary())
             return ParseBinaryOperation(type, parameters, locals);
         
         if (_currentToken.Type == TokenType.QuotationMark)
@@ -421,22 +421,14 @@ public class Parser
 
     private bool CheckIfBinary()
     {
-        var tokens = PeekUntil(TokenType.Semicolon, TokenType.Comma, TokenType.Brace);
-        List<Token> relevantTokens = [];
+        var token = _currentToken;
+        var currentIndex = _lexer.Position;
+        var foo = ParseExpression(binaryOpCheck: false);
+        var nextToken = _currentToken;
+        _lexer.Position = currentIndex;
+        _currentToken = token;
 
-        int parenthesesCount = 0;
-
-        foreach (var token in tokens)
-        {
-            if (token.Value == "(")
-                parenthesesCount++;
-            else if (token.Value == ")")
-                parenthesesCount--;
-            else if (parenthesesCount == 0)
-                relevantTokens.Add(token);
-        }
-
-        return relevantTokens.Any(x => x.Type == TokenType.Operator);
+        return nextToken.Type == TokenType.Operator;
     }
 
     private AssignmentNode ParseValueAssignment(List<IParameterNode> parameters, List<ILocalVariableNode> locals)
