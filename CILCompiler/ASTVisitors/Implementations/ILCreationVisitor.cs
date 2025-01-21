@@ -16,13 +16,13 @@ public class ILCreationVisitor : INodeVisitor
     {
         nodes[0].Accept(this);
 
-        return [typeBuilder!];
+        return [TypeBuilder!];
     }
 
     private TypeBuilder? _tb;
-    private TypeBuilder typeBuilder { get => _tb ?? throw new Exception("Type Builder is not defined"); set => _tb = value; }
-    private List<FieldBuilder> fields = [];
-    private List<MethodBuilder> methods = [];
+    private TypeBuilder TypeBuilder { get => _tb ?? throw new Exception("Type Builder is not defined"); set => _tb = value; }
+    private readonly List<FieldBuilder> fields = [];
+    private readonly List<MethodBuilder> methods = [];
     private List<(ILocalVariableNode node, LocalBuilder builder)> locals = [];
 
     public void VisitObject(IObjectNode node, NodeVisitOptions? options = null)
@@ -31,7 +31,7 @@ public class ILCreationVisitor : INodeVisitor
         var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
         var moduleBuilder = assemblyBuilder.DefineDynamicModule(assemblyName.Name ?? "CIL");
 
-        typeBuilder = moduleBuilder.DefineType(node.Name, TypeAttributes.Public);
+        TypeBuilder = moduleBuilder.DefineType(node.Name, TypeAttributes.Public);
 
         BuildConstructorAndFields(node);
 
@@ -42,7 +42,7 @@ public class ILCreationVisitor : INodeVisitor
 
         foreach ((var method, var option) in methodOptions)
         {
-            Console.WriteLine($"{typeBuilder.Name}::{method.Name}({string.Join(", ", method.Parameters.Select(x => x.Type.Name))})");
+            Console.WriteLine($"{TypeBuilder.Name}::{method.Name}({string.Join(", ", method.Parameters.Select(x => x.Type.Name))})");
             method.Accept(this, option);
             Console.WriteLine();
             Console.WriteLine();
@@ -56,7 +56,7 @@ public class ILCreationVisitor : INodeVisitor
         foreach (var method in methodNodes)
         {
             Type[] parameterTypes = method.Parameters.Select(x => x.Type).ToArray();
-            var methodBuilder = typeBuilder.DefineMethod(method.Name, MethodAttributes.Public, method.ReturnType, parameterTypes);
+            var methodBuilder = TypeBuilder.DefineMethod(method.Name, MethodAttributes.Public, method.ReturnType, parameterTypes);
             List<ParameterBuilder> parameters = [];
 
             for (int i = 0; i < parameterTypes.Length; i++)
@@ -82,7 +82,7 @@ public class ILCreationVisitor : INodeVisitor
         il.Emit(OpCodes.Ldarg_0);
         Console.WriteLine(@"ldarg.0");
         il.Emit(OpCodes.Ldfld, field);
-        Console.WriteLine($"ldfld {node.Type.Name.ToLower()} {typeBuilder.Name}::{field.Name}");
+        Console.WriteLine($"ldfld {node.Type.Name.ToLower()} {TypeBuilder.Name}::{field.Name}");
     }
 
     public void VisitMethod(IMethodNode node, NodeVisitOptions? options = null)
@@ -247,15 +247,15 @@ public class ILCreationVisitor : INodeVisitor
 
     private void BuildConstructorAndFields(IObjectNode node)
     {
-        var constructorBuilder = typeBuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, []);
+        var constructorBuilder = TypeBuilder.DefineConstructor(MethodAttributes.Public, CallingConventions.Standard, []);
         ILGenerator constructorGenerator = constructorBuilder.GetILGenerator();
         NodeVisitOptions options = new() { IL = constructorGenerator };
 
-        Console.WriteLine($"{typeBuilder.Name}::.cctor");
+        Console.WriteLine($"{TypeBuilder.Name}::.cctor");
 
         foreach (var field in node.Fields)
         {
-            fields.Add(typeBuilder.DefineField(field.Name, field.Type, FieldAttributes.Private));
+            fields.Add(TypeBuilder.DefineField(field.Name, field.Type, FieldAttributes.Private));
             constructorGenerator.Emit(OpCodes.Ldarg_0);
             Console.WriteLine("ldarg_0");
 
@@ -270,7 +270,7 @@ public class ILCreationVisitor : INodeVisitor
             }
 
             constructorGenerator.Emit(OpCodes.Stfld, fields[^1]);
-            Console.WriteLine($"stfld {typeBuilder.Name}::{fields[^1].Name}");
+            Console.WriteLine($"stfld {TypeBuilder.Name}::{fields[^1].Name}");
         }
 
         var constructorInfo = typeof(object).GetConstructor([]);
@@ -282,7 +282,7 @@ public class ILCreationVisitor : INodeVisitor
         Console.WriteLine("ret");
     }
 
-    private Dictionary<Type, Action<ILGenerator, object>> AddToStackDelegates = new()
+    private readonly Dictionary<Type, Action<ILGenerator, object>> AddToStackDelegates = new()
     {
         { 
             typeof(int), (il, x) => 
@@ -354,10 +354,10 @@ public class ILCreationVisitor : INodeVisitor
         }
 
         il.Emit(OpCodes.Call, methods.First(x => x.Name == callNode.MethodNode.Name));
-        Console.WriteLine($"call instance {callNode.MethodNode.ReturnType.Name.ToLower()} {typeBuilder.Name}::{callNode.MethodNode.Name}({string.Join(", ", node.Arguments.Select(x => x.GetValueType()))})");
+        Console.WriteLine($"call instance {callNode.MethodNode.ReturnType.Name.ToLower()} {TypeBuilder.Name}::{callNode.MethodNode.Name}({string.Join(", ", node.Arguments.Select(x => x.GetValueType()))})");
     }
 
-    Dictionary<string, OpCode> ComparisonActions = new()
+    private readonly Dictionary<string, OpCode> ComparisonActions = new()
     {
         { ">", OpCodes.Ble }, // do the opposite comparison because it branches to the else block.
         { ">=", OpCodes.Blt },
