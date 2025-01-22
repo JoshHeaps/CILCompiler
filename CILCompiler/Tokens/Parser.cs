@@ -300,7 +300,7 @@ public class Parser
             }
         }
 
-        var right = ParseExpression(null, parameters, locals, operationCheck);
+        var right = ParseExpression(null, parameters, locals, operationCheck, false);
 
         return new(left, right, Operator);
     }
