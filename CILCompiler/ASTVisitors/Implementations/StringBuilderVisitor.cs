@@ -7,7 +7,7 @@ namespace CILCompiler.ASTVisitors.Implementations;
 
 public class StringBuilderVisitor : INodeVisitor<string>
 {
-    public string VisitBinaryExpression(BinaryExpressionNode node, NodeVisitOptions? options = null) =>
+    public string VisitCalculation(CalculationNode node, NodeVisitOptions? options = null) =>
         $"({node.Left.Accept(this)} {node.Operator} {node.Right.Accept(this)})";
 
     public string VisitExpression(IExpressionNode node, NodeVisitOptions? options = null) =>

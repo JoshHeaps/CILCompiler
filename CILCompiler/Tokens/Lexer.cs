@@ -8,6 +8,8 @@ public class Lexer
     private static readonly Dictionary<string, TokenType> KeywordTypes = new()
     {
         { "class", TokenType.Keyword },
+        { "true", TokenType.Keyword },
+        { "false", TokenType.Keyword },
         { "if", TokenType.If },
         { "else", TokenType.FlowControl },
         { "while", TokenType.FlowControl },
@@ -24,6 +26,11 @@ public class Lexer
 
     private static readonly Dictionary<char, Token> SymbolTokens = new()
     {
+        { '+', new (TokenType.ArithmeticOperator, "+") },
+        { '-', new (TokenType.ArithmeticOperator, "-") },
+        { '*', new (TokenType.ArithmeticOperator, "*") },
+        { '/', new (TokenType.ArithmeticOperator, "/") },
+        { '%', new (TokenType.ArithmeticOperator, "%") },
         { '{', new (TokenType.Brace, "{") },
         { '}', new (TokenType.Brace, "}") },
         { ',', new (TokenType.Comma, ",") },
@@ -32,11 +39,9 @@ public class Lexer
         { '!', new (TokenType.Comparer, "!") },
         { '.', new (TokenType.Dot, ".") },
         { '=', new (TokenType.Equals, "=") },
-        { '+', new (TokenType.Operator, "+") },
-        { '-', new (TokenType.Operator, "-") },
-        { '*', new (TokenType.Operator, "*") },
-        { '/', new (TokenType.Operator, "/") },
-        { '%', new (TokenType.Operator, "%") },
+        { '|', new (TokenType.LogicalOperator, "|") },
+        { '&', new (TokenType.LogicalOperator, "&") },
+        { '^', new (TokenType.LogicalOperator, "^") },
         { '(', new (TokenType.Parenthesis, "(") },
         { ')', new (TokenType.Parenthesis, ")") },
         { '"', new (TokenType.QuotationMark, "\"") },

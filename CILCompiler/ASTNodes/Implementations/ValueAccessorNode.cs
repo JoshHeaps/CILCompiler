@@ -24,7 +24,7 @@ public record ValueAccessorNode : IValueAccessorNode
         return ValueContainer switch
         {
             AssignmentNode assignmentNode => assignmentNode.Type,
-            BinaryExpressionNode binaryExpression => binaryExpression.Left is not null ? new ValueAccessorNode(binaryExpression.Left).GetValueType() : binaryExpression.Right is not null ? new ValueAccessorNode(binaryExpression.Right).GetValueType() : throw new InvalidProgramException(),
+            CalculationNode calculation => calculation.Left is not null ? new ValueAccessorNode(calculation.Left).GetValueType() : calculation.Right is not null ? new ValueAccessorNode(calculation.Right).GetValueType() : throw new InvalidProgramException(),
             LiteralNode literal => literal.Value.GetType(),
             FieldNode field => field.Type,
             LocalVariableNode localVariable => localVariable.Type,
@@ -39,7 +39,7 @@ public record ValueAccessorNode : IValueAccessorNode
         return ValueContainer switch
         {
             AssignmentNode assignment => GetValueFromAssignment(assignment),
-            BinaryExpressionNode binaryExpression => GetValueFromBinaryExpression(binaryExpression),
+            CalculationNode calculation => GetValueFromCalculation(calculation),
             LiteralNode literal => literal.Value,
             FieldNode field => field.Value,
             LocalVariableNode localVariable => localVariable.Value,
@@ -67,10 +67,10 @@ public record ValueAccessorNode : IValueAccessorNode
         ValueContainer = expressionNode;
     }
 
-    private object GetValueFromBinaryExpression(BinaryExpressionNode binaryExpression)
+    private object GetValueFromCalculation(CalculationNode calculation)
     {
-        IExpressionNode left = binaryExpression.Left;
-        IExpressionNode right = binaryExpression.Right;
+        IExpressionNode left = calculation.Left;
+        IExpressionNode right = calculation.Right;
 
         object? leftValue = new ValueAccessorNode(left).GetValue();
         object? rightValue = new ValueAccessorNode(right).GetValue();
@@ -91,6 +91,6 @@ public record ValueAccessorNode : IValueAccessorNode
             { (typeof(string), "+"), (l, r) => (string)l + (string)r },
         };
 
-        return operations[(leftValue.GetType(), binaryExpression.Operator)].Invoke(leftValue, rightValue);
+        return operations[(leftValue.GetType(), calculation.Operator)].Invoke(leftValue, rightValue);
     }
 }

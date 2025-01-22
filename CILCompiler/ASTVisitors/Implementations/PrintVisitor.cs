@@ -8,7 +8,7 @@ namespace CILCompiler.ASTVisitors.Implementations;
 
 public class PrintVisitor : INodeVisitor
 {
-    public void VisitBinaryExpression(BinaryExpressionNode node, NodeVisitOptions? options = null)
+    public void VisitCalculation(CalculationNode node, NodeVisitOptions? options = null)
     {
         Console.Write("(");
         node.Left.Accept(this);
@@ -27,7 +27,7 @@ public class PrintVisitor : INodeVisitor
                 Console.Write((literal?.Value?.GetType().Name ?? "") + " " + literal?.Value?.ToString() ?? "");
         }
 
-        else if (node is BinaryExpressionNode binary)
+        else if (node is CalculationNode binary)
             binary.Accept(this);
 
         else if (node is AssignmentNode assignment)
@@ -164,6 +164,11 @@ public class PrintVisitor : INodeVisitor
     }
 
     public void VisitWhileLoop(WhileLoopNode node, NodeVisitOptions? options = null)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void VisitBinaryExpression(BinaryExpressionNode node, NodeVisitOptions? options = null)
     {
         throw new NotImplementedException();
     }

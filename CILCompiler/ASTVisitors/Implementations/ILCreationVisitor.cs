@@ -93,9 +93,12 @@ public class ILCreationVisitor : INodeVisitor
         {
             expression.Accept(this, options);
         }
+
+        if (node.ReturnType == typeof(void) && node.Body.Last() is not ReturnStatementNode)
+            new ReturnStatementNode(new ValueAccessorNode(null)).Accept(this, options);
     }
 
-    public void VisitBinaryExpression(BinaryExpressionNode node, NodeVisitOptions? options = null)
+    public void VisitCalculation(CalculationNode node, NodeVisitOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(options.IL);
@@ -142,7 +145,7 @@ public class ILCreationVisitor : INodeVisitor
         if (node is LiteralNode literal)
             AddToStack(literal, options);
 
-        else if (node is BinaryExpressionNode binary)
+        else if (node is CalculationNode binary)
             binary.Accept(this, options);
 
         else if (node is AssignmentNode assignment)
@@ -150,6 +153,9 @@ public class ILCreationVisitor : INodeVisitor
 
         else if (node is ReturnStatementNode returnStatement)
             VisitReturnStatement(returnStatement, options);
+
+        else if (node is PredicateNode predicate)
+            VisitPredicate(predicate, options);
     }
 
     public void VisitLocalVariable(ILocalVariableNode node, NodeVisitOptions? options = null)
@@ -367,14 +373,14 @@ public class ILCreationVisitor : INodeVisitor
         { "!=", OpCodes.Beq },
     };
 
-    private readonly Dictionary<string, OpCode> ComparisonActions = new()
+    private readonly Dictionary<string, List<OpCode>> ComparisonActions = new()
     {
-        { ">", OpCodes.Bgt }, // do the opposite comparison because it branches to the else block.
-        { ">=", OpCodes.Bge },
-        { "<", OpCodes.Blt },
-        { "<=", OpCodes.Ble },
-        { "==", OpCodes.Beq },
-        { "!=", OpCodes.Bne_Un },
+        { ">", [OpCodes.Cgt] }, // do the opposite comparison because it branches to the else block.
+        { ">=", [OpCodes.Clt, OpCodes.Ldc_I4_0, OpCodes.Ceq] },
+        { "<", [OpCodes.Clt] },
+        { "<=", [OpCodes.Cgt, OpCodes.Ldc_I4_0, OpCodes.Ceq] },
+        { "==", [OpCodes.Ceq] },
+        { "!=", [OpCodes.Ceq, OpCodes.Ldc_I4_0, OpCodes.Ceq] },
     };
 
     public void VisitIfStatement(IfStatementNode node, NodeVisitOptions? options = null)
@@ -386,17 +392,20 @@ public class ILCreationVisitor : INodeVisitor
         var elseLabel = il.DefineLabel();
         var endIfLabel = il.DefineLabel();
 
-        node.Condition.Left.Accept(this, options);
-        node.Condition.Right.Accept(this, options);
-        il.Emit(IfComparisonActions[node.Condition.ComparisonOperator], elseLabel);
-        Console.WriteLine($"{IfComparisonActions[node.Condition.ComparisonOperator]} ELSE_LABEL");
+        if (node.Condition is BinaryExpressionNode binaryExpressionNode)
+            binaryExpressionNode.Accept(this, options);
+        else if (node.Condition is PredicateNode predicateNode)
+            predicateNode.Accept(this, options);
+
+        il.Emit(OpCodes.Brfalse, elseLabel);
+        Console.WriteLine($"{OpCodes.Brfalse} ELSE_LABEL");
         Console.WriteLine();
 
         foreach (var expression in node.Body)
             expression.Accept(this, options);
 
-        il.Emit(OpCodes.Br_S, endIfLabel);
-        Console.WriteLine("br.s END_IF_LABEL");
+        il.Emit(OpCodes.Br, endIfLabel);
+        Console.WriteLine("br END_IF_LABEL");
 
         Console.WriteLine();
         il.MarkLabel(elseLabel);
@@ -419,17 +428,61 @@ public class ILCreationVisitor : INodeVisitor
         var conditionLabel = il.DefineLabel();
         var loopStartLabel = il.DefineLabel();
 
+        il.Emit(OpCodes.Br, conditionLabel);
+        Console.WriteLine("br CONDITION_LABEL");
+        Console.WriteLine();
         il.MarkLabel(loopStartLabel);
-        Console.WriteLine("LOOP_START_LABEL");
+        Console.WriteLine("LOOP_START_LABEL:");
 
         foreach (var expression in node.Body)
             expression.Accept(this, options);
 
+        Console.WriteLine();
         il.MarkLabel(conditionLabel);
-        Console.WriteLine("CONDITION_LABEL");
-        node.Condition.Left.Accept(this, options);
-        node.Condition.Right.Accept(this, options);
-        il.Emit(ComparisonActions[node.Condition.ComparisonOperator], loopStartLabel);
-        Console.WriteLine($"{ComparisonActions[node.Condition.ComparisonOperator]} LOOP_START_LABEL");
+        Console.WriteLine("CONDITION_LABEL:");
+
+        if (node.Condition is BinaryExpressionNode binaryExpressionNode)
+            binaryExpressionNode.Accept(this, options);
+        else if (node.Condition is PredicateNode predicateNode)
+            predicateNode.Accept(this, options);
+
+        il.Emit(OpCodes.Brtrue, loopStartLabel);
+        Console.WriteLine($"{OpCodes.Brtrue} LOOP_START_LABEL");
+        Console.WriteLine();
+    }
+
+    private readonly Dictionary<string, OpCode> LogicalActions = new()
+    {
+        { "&", OpCodes.And },
+        { "|", OpCodes.Or },
+        { "^", OpCodes.Xor },
+    };
+
+    public void VisitBinaryExpression(BinaryExpressionNode node, NodeVisitOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(options.IL);
+        ILGenerator il = options.IL;
+
+        node.Left.Accept(this, options);
+        node.Right.Accept(this, options);
+        il.Emit(LogicalActions[node.Operator]);
+        Console.WriteLine(LogicalActions[node.Operator].ToString());
+    }
+
+    public void VisitPredicate(PredicateNode node, NodeVisitOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(options.IL);
+        ILGenerator il = options.IL;
+
+        node.Left.Accept(this, options);
+        node.Right.Accept(this, options);
+
+        foreach (var opCode in ComparisonActions[node.ComparisonOperator])
+        {
+            il.Emit(opCode);
+            Console.WriteLine(opCode);
+        }
     }
 }

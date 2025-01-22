@@ -4,7 +4,7 @@ using CILCompiler.ASTVisitors.Interfaces;
 
 namespace CILCompiler.ASTNodes.Implementations.FlowControllers;
 
-public record WhileLoopNode(PredicateNode Condition, List<IExpressionNode> Body) : IFlowControllerNode
+public record WhileLoopNode(IExpressionNode Condition, List<IExpressionNode> Body) : IFlowControllerNode
 {
     public string Expression => throw new NotImplementedException();
 

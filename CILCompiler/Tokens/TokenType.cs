@@ -2,7 +2,8 @@
 
 public enum TokenType
 {
-    Operator,
+    LogicalOperator,
+    ArithmeticOperator,
     Comparer,
     Keyword,
     If,

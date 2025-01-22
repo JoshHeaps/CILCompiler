@@ -202,7 +202,6 @@ public class Parser
 
         while (_currentToken.Type != TokenType.Brace)
         {
-            Console.WriteLine(body.Count);
             if (_currentToken.Type == TokenType.If)
                 body.Add(ParseIfStatement(type, parameters, [.. locals, .. outerLocals]));
 
@@ -222,7 +221,7 @@ public class Parser
             else if (_currentToken.Type == TokenType.Return)
                 body.Add(ParseReturnStatement(type, parameters, [.. locals, .. outerLocals]));
 
-            else if (_currentToken.Type == TokenType.Identifier && NextTypesAre(TokenType.Operator, TokenType.Operator))
+            else if (_currentToken.Type == TokenType.Identifier && NextTypesAre(TokenType.ArithmeticOperator, TokenType.ArithmeticOperator))
                 body.Add(ParseIncrement(parameters, [.. locals, .. outerLocals]));
 
             if (body.Count > 0 && body[^1] is ILocalVariableNode local)
@@ -239,7 +238,7 @@ public class Parser
     {
         Eat(TokenType.If);
         Eat(TokenType.Parenthesis);
-        var condition = ParsePredicate(parameters, locals);
+        var condition = ParseBinaryExpression(typeof(bool), parameters, locals);
         Eat(TokenType.Parenthesis);
         Eat(TokenType.Brace);
         var body = ParseMethodBody(type, parameters, locals);
@@ -262,7 +261,7 @@ public class Parser
     {
         Eat(TokenType.FlowControl);
         Eat(TokenType.Parenthesis);
-        var condition = ParsePredicate(parameters, locals);
+        var condition = ParseBinaryExpression(type, parameters, locals);
         Eat(TokenType.Parenthesis);
         Eat(TokenType.Brace);
         var body = ParseMethodBody(type, parameters, locals);
@@ -271,9 +270,12 @@ public class Parser
         return new(condition, body);
     }
 
-    private PredicateNode ParsePredicate(List<IParameterNode> parameters, List<ILocalVariableNode> locals)
+    private PredicateNode ParsePredicate(List<IParameterNode> parameters, List<ILocalVariableNode> locals, bool operationCheck = true)
     {
-        var left = ParseExpression(null, parameters, locals);
+        var left = ParseExpression(null, parameters, locals, operationCheck, false);
+
+        if (left is PredicateNode predicateNode)
+            return predicateNode; // I'll fix this later (he said knowing he wouldn't)
 
         string Operator;
 
@@ -298,7 +300,7 @@ public class Parser
             }
         }
 
-        var right = ParseExpression(null, parameters, locals);
+        var right = ParseExpression(null, parameters, locals, operationCheck);
 
         return new(left, right, Operator);
     }
@@ -351,25 +353,35 @@ public class Parser
         return new(new ValueAccessorNode(ParseExpression(type, parameters, locals)));
     }
 
-    private IExpressionNode ParseExpression(Type? type = null, List<IParameterNode>? parameters = null, List<ILocalVariableNode>? locals = null, bool binaryOpCheck = true)
+    private IExpressionNode ParseExpression(Type? type = null, List<IParameterNode>? parameters = null, List<ILocalVariableNode>? locals = null, bool calculationCheck = true, bool logicCheck = true)
     {
-        if (binaryOpCheck && CheckIfBinary())
-            return ParseBinaryOperation(type, parameters, locals);
+        type ??= typeof(object);
+
+        if (calculationCheck || logicCheck)
+        {
+            var tokenType = CheckOperationType();
+
+            if (calculationCheck && tokenType == TokenType.ArithmeticOperator)
+            {
+                return ParseCalculation(type, parameters, locals);
+            }
+            else if (logicCheck && tokenType == TokenType.LogicalOperator)
+            {
+                return ParseBinaryExpression(type, parameters, locals);
+            }
+        }
         
         if (_currentToken.Type == TokenType.QuotationMark)
             return ParseValue(typeof(string), parameters, locals);
 
-        IExpressionNode? expression = null;
-        type ??= typeof(object);
-
         var identifier = ParseIdentifier();
 
         if (parameters is not null && parameters.Any(x => x.Name == identifier))
-            expression = parameters.First(x => x.Name == identifier);
+            return parameters.First(x => x.Name == identifier);
         else if (locals is not null && locals.Any(x => x.Name == identifier))
-            expression = locals.First(x => x.Name == identifier);
+            return locals.First(x => x.Name == identifier);
         else if (_fields is not null && _fields.Any(x => x.Name == identifier))
-            expression = _fields.First(x => x.Name == identifier);
+            return _fields.First(x => x.Name == identifier);
         else if ((_currentToken.Type == TokenType.Parenthesis && _currentToken.Value == "(")
               || (_currentToken.Type == TokenType.Dot && NextTypesAre(TokenType.Identifier, TokenType.Parenthesis)))
         {
@@ -378,27 +390,23 @@ public class Parser
 
             return ParseMethodCall(parameters!, locals!, objectName: identifier);
         }
-        else
-        {
-            if (int.TryParse(identifier, out _))
-                type = typeof(int);
 
-            expression = new LiteralNode(typeConversions[type](identifier));
-        }
+        if (int.TryParse(identifier, out _))
+            type = typeof(int);
 
-        return expression;
+        return new LiteralNode(typeConversions[type](identifier));
     }
 
-    private bool CheckIfBinary()
+    private TokenType CheckOperationType()
     {
         var token = _currentToken;
         var currentIndex = _lexer.Position;
-        _ = ParseExpression(binaryOpCheck: false);
+        _ = ParseExpression(calculationCheck: false, logicCheck: false);
         var nextToken = _currentToken;
         _lexer.Position = currentIndex;
         _currentToken = token;
 
-        return nextToken.Type == TokenType.Operator;
+        return nextToken.Type;
     }
 
     private AssignmentNode ParseIncrement(List<IParameterNode> parameters, List<ILocalVariableNode> locals)
@@ -423,10 +431,10 @@ public class Parser
         else
             throw new InvalidProgramException("Identifier doesn't exist in this context.");
 
-        string @operator = ParseOperator();
-        Eat(TokenType.Operator);
+        string @operator = ParseArithmeticOperator();
+        Eat(TokenType.ArithmeticOperator);
 
-        return new(type, identifier, new ValueAccessorNode(new BinaryExpressionNode(expression, new LiteralNode(1), @operator)));
+        return new(type, identifier, new ValueAccessorNode(new CalculationNode(expression, new LiteralNode(1), @operator)));
     }
 
     private AssignmentNode ParseValueAssignment(List<IParameterNode> parameters, List<ILocalVariableNode> locals)
@@ -453,6 +461,13 @@ public class Parser
             ArgumentNullException.ThrowIfNull(locals);
 
             return ParseMethodCall(parameters, locals);
+        }
+        else if (type == typeof(bool) && PeekNextToken().Type == TokenType.Comparer || PeekNextToken().Type == TokenType.Equals)
+        {
+            ArgumentNullException.ThrowIfNull(parameters);
+            ArgumentNullException.ThrowIfNull(locals);
+
+            return ParsePredicate(parameters, locals);
         }
         
         type ??= typeof(object);
@@ -511,17 +526,52 @@ public class Parser
         { typeof(object), value => value },
     };
 
-    private readonly Dictionary<string, int> operatorPriorities = new()
+    private readonly Dictionary<string, int> _operatorPriorities = new()
     {
         { "+", 0 },
         { "-", 0 },
         { "*", 1 },
         { "/", 1 },
         { "%", 1 },
-        { "^", 2 },
     };
 
-    private IExpressionNode ParseBinaryOperation(Type? type = null, List<IParameterNode>? parameters = null, List<ILocalVariableNode>? locals = null)
+    private IExpressionNode ParseBinaryExpression(Type? type = null, List<IParameterNode>? parameters = null, List<ILocalVariableNode>? locals = null)
+    {
+        type ??= typeof(bool);
+
+        List<IExpressionNode> values = [];
+        List<string> operators = [];
+        
+        values.Add(ParseValue(typeof(bool), parameters, locals));
+
+        while (_currentToken.Type == TokenType.LogicalOperator || _currentToken.Type == TokenType.Equals)
+        {
+            operators.Add(ParseLogicalOperator());
+            values.Add(ParseValue(typeof(bool), parameters, locals));
+        }
+
+        return PrioritizeLogicalOperations(values, operators);
+    }
+
+    private IExpressionNode PrioritizeLogicalOperations(List<IExpressionNode> values, List<string> operators)
+    {
+        if (values.Count == 2)
+            return new BinaryExpressionNode(values[0], values[1], operators[0]);
+
+        if (values.Count == 1)
+            return values[0];
+
+        var lowestPriorityIndex = operators.LastIndexOf(operators.MinBy(x => _operatorPriorities[x])!);
+
+        var left = values[0];
+        var @operator = operators[0];
+        var right = PrioritizeLogicalOperations(values[1..], operators[1..]);
+
+        return new BinaryExpressionNode(left, right, @operator);
+    }
+    
+
+    private IExpressionNode ParseCalculation(Type? type = null, List<IParameterNode>? parameters = null, List<ILocalVariableNode>? locals = null)
     {
         type ??= typeof(object);
 
@@ -533,9 +583,9 @@ public class Parser
 
         values.Add(ParseValue(type, parameters, locals));
 
-        while (_currentToken.Type == TokenType.Operator)
+        while (_currentToken.Type == TokenType.ArithmeticOperator)
         {
-            operators.Add(ParseOperator());
+            operators.Add(ParseArithmeticOperator());
 
             if (int.TryParse(_currentToken.Value, out _))
                 type = typeof(int);
@@ -549,12 +599,12 @@ public class Parser
     private IExpressionNode PrioritizeOperations(List<IExpressionNode> values, List<string> operators)
     {
         if (values.Count == 2)
-            return new BinaryExpressionNode(values[0], values[1], operators[0]);
+            return new CalculationNode(values[0], values[1], operators[0]);
 
         if (values.Count == 1)
             return values[0];
 
-        var lowestPriorityIndex = operators.LastIndexOf(operators.MinBy(x => operatorPriorities[x])!);
+        var lowestPriorityIndex = operators.LastIndexOf(operators.MinBy(x => _operatorPriorities[x])!);
 
         var leftValues = values[..(lowestPriorityIndex + 1)];
         var leftOperators = operators.Take(lowestPriorityIndex).ToList();
@@ -565,16 +615,27 @@ public class Parser
         string Operator = operators[lowestPriorityIndex];
         IExpressionNode right = PrioritizeOperations(rightValues, rightOperators);
 
-        return new BinaryExpressionNode(left, right, Operator);
+        return new CalculationNode(left, right, Operator);
     }
 
-    private string ParseOperator()
+    private string ParseArithmeticOperator()
     {
-        if (_currentToken.Type != TokenType.Operator)
-            throw new Exception("Expected operator");
+        if (_currentToken.Type != TokenType.ArithmeticOperator)
+            throw new Exception("Expected arithmetic operator");
 
         var op = _currentToken.Value;
-        Eat(TokenType.Operator);
+        Eat(TokenType.ArithmeticOperator);
+
+        return op;
+    }
+
+    private string ParseLogicalOperator()
+    {
+        if (_currentToken.Type != TokenType.LogicalOperator)
+            throw new Exception("Expected logical operator");
+
+        var op = _currentToken.Value;
+        Eat(TokenType.LogicalOperator);
 
         return op;
     }

@@ -4,7 +4,7 @@ using CILCompiler.ASTVisitors.Interfaces;
 
 namespace CILCompiler.ASTNodes.Implementations.FlowControllers;
 
-public record IfStatementNode(PredicateNode Condition, List<IExpressionNode> Body, List<IExpressionNode> ElseBody) : IFlowControllerNode
+public record IfStatementNode(IExpressionNode Condition, List<IExpressionNode> Body, List<IExpressionNode> ElseBody) : IFlowControllerNode
 {
     public string Expression => throw new NotImplementedException();
 

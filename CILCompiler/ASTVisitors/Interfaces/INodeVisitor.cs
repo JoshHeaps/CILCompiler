@@ -7,7 +7,7 @@ namespace CILCompiler.ASTVisitors.Interfaces;
 
 public interface INodeVisitor<T>
 {
-    public T VisitBinaryExpression(BinaryExpressionNode node, NodeVisitOptions? options = null);
+    public T VisitCalculation(CalculationNode node, NodeVisitOptions? options = null);
     public T VisitExpression(IExpressionNode node, NodeVisitOptions? options = null);
     public T VisitPrintStatement(PrintStatementNode node, NodeVisitOptions? options = null);
     public T VisitMethod(IMethodNode node, NodeVisitOptions? options = null);
@@ -25,7 +25,7 @@ public interface INodeVisitor<T>
 
 public interface INodeVisitor
 {
-    public void VisitBinaryExpression(BinaryExpressionNode node, NodeVisitOptions? options = null);
+    public void VisitCalculation(CalculationNode node, NodeVisitOptions? options = null);
     public void VisitExpression(IExpressionNode node, NodeVisitOptions? options = null);
     public void VisitPrintStatement(PrintStatementNode node, NodeVisitOptions? options = null);
     public void VisitMethod(IMethodNode node, NodeVisitOptions? options = null);
@@ -39,6 +39,7 @@ public interface INodeVisitor
     public void VisitMethodCall(IMethodCallNode node, NodeVisitOptions? options = null);
     public void VisitIfStatement(IfStatementNode node, NodeVisitOptions? options = null);
     public void VisitWhileLoop(WhileLoopNode node, NodeVisitOptions? options = null);
+    public void VisitBinaryExpression(BinaryExpressionNode node, NodeVisitOptions? options = null);
 }
 
 public class NodeVisitOptions
